@@ -647,21 +647,56 @@
       `;
       document.head.appendChild(style);
 
-      // ฟังก์ชันพิมพ์ผ่าน RawBT
-      function printViaRawBTPlain(item) {
-        let text = `*** KITCHEN ORDER ***\n`;
-        text += `โต๊ะ: ${item.table}\n`;
-        text += `เวลา: ${formatTimestamp(item.createdAt)}\n`;
-        text += `--------------------------------\n`;
-        text += `${item.title} x${item.qty}\n`;
-        if (item.option) text += `ตัวเลือก: ${item.option}\n`;
-        if (item.additionalDetail) text += `โน้ต: ${item.additionalDetail}\n`;
-        text += `--------------------------------\n\n\n`;
 
-        const encodedText = encodeURIComponent(text);
-        const rawbtUrl = `rawbt:data;charset=utf-8,${encodedText}`;
+      // ฟังก์ชันสำหรับส่งคำสั่งพิมพ์ไปที่ RawBT
+      function printViaRawBT(item) {
+        // 1. จัดรูปแบบข้อความและคำสั่ง ESC/POS
+        // \x1B\x40 = Initialize
+        // \x1B\x61\x01 = Center, \x1B\x61\x00 = Left
+        // \x1D\x21\x11 = Text size x2
+        // \x1D\x21\x00 = Normal text
+        // \x1D\x56\x42\x00 = Auto Cut (สำหรับเครื่องที่มีตัดกระดาษอัตโนมัติ)
+        
+        let escPosText = "";
+        escPosText += "\x1B\x40";               // Init
+        escPosText += "\x1B\x61\x01";           // จัดกลาง
+        escPosText += "*** KITCHEN ORDER ***\n";
+        escPosText += "\x1B\x61\x00";           // จัดซ้าย
+        escPosText += "--------------------------------\n";
+        escPosText += `โต๊ะ: ${item.table}\n`;
+        escPosText += `เวลา: ${formatTimestamp(item.createdAt)}\n`;
+        escPosText += "--------------------------------\n";
+        escPosText += `\x1D\x21\x11${item.title} x${item.qty}\x1D\x21\x00\n`; // ตัวหนา/ใหญ่
+        
+        if (item.option) {
+          escPosText += `ตัวเลือก: ${item.option}\n`;
+        }
+        if (item.additionalDetail) {
+          escPosText += `โน้ต: ${item.additionalDetail}\n`;
+        }
+        
+        escPosText += "--------------------------------\n";
+        escPosText += `เลขอ้างอิง: ${item.sessionId || '-'}\n\n\n`;
+        escPosText += "\x1D\x56\x42\x00";      // คำสั่งตัดกระดาษ (ถ้าเครื่องรองรับ)
 
-        window.location.href = rawbtUrl;
+        // 2. แปลงข้อความ (UTF-8) เป็น Base64 เพื่อความถูกต้องของภาษาไทย
+        // ใช้ TextEncoder รองรับภาษาไทยบนเว็บเบราว์เซอร์ยุคใหม่
+        const utf8Bytes = new TextEncoder().encode(escPosText);
+        let binaryString = "";
+        for (let i = 0; i < utf8Bytes.length; i++) {
+          binaryString += String.fromCharCode(utf8Bytes[i]);
+        }
+        const base64Data = btoa(binaryString);
+
+        // 3. เรียกใช้งาน RawBT ผ่าน URL Scheme
+        const rawbtUrl = `rawbt:data:base64,${base64Data}`;
+        
+        // สร้างลิงก์หลอกแล้วสั่งคลิกเพื่อเปิดแอป RawBT ขึ้นมาพิมพ์
+        const link = document.createElement("a");
+        link.href = rawbtUrl;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
       }
       
       // ==================== Initialize ====================
