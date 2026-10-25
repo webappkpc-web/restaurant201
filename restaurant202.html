@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>จัดการเมนู - ครัวจันทร์เพ็ญ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      body {
+        background-color: #f3f4f6;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.25s ease;
+      }
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-container {
+        background: white;
+        border-radius: 20px;
+        width: 92%;
+        max-width: 420px;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: scale(0.92);
+        transition: transform 0.25s ease;
+      }
+      .modal-overlay.active .modal-container {
+        transform: scale(1);
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1f2937;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 3000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .toast.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+        <h1 class="font-bold text-lg flex items-center gap-2">
+          <i class="fas fa-utensils"></i> จัดการเมนูอาหาร
+        </h1>
+        <button
+          onclick="openAddModal()"
+          class="bg-white text-blue-600 font-bold px-3 py-2 rounded-lg text-sm shadow active:scale-95 transition flex items-center gap-1"
+        >
+          <i class="fas fa-plus"></i> เพิ่มเมนู
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="ค้นหาชื่อเมนู..."
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+        oninput="renderList()"
+      />
+      <button
+        onclick="loadMenus()"
+        class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm active:scale-95"
+        title="โหลดใหม่"
+      >
+        <i class="fas fa-rotate"></i>
+      </button>
+    </div>
+
+    <!-- List -->
+    <div class="max-w-3xl mx-auto px-4 pb-24">
+      <div id="menuList" class="space-y-3">
+        <div class="text-center py-20 text-gray-500">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+          <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal เพิ่ม/แก้ไข -->
+    <div id="formModal" class="modal-overlay" onclick="closeFormOnOverlay(event)">
+      <div class="modal-container" onclick="event.stopPropagation()">
+        <div class="p-5">
+          <div class="flex justify-between items-center mb-4">
+            <h2 id="formTitle" class="font-bold text-lg">เพิ่มเมนูใหม่</h2>
+            <button
+              onclick="closeFormModal()"
+              class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <input type="hidden" id="editId" />
+
+          <!-- รูป -->
+          <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">รูปภาพ</label>
+            <div class="flex items-center gap-3">
+              <img
+                id="previewImg"
+                src="https://via.placeholder.com/100?text=No+Image"
+                class="w-20 h-20 rounded-lg object-cover border"
+                onerror="this.src='https://via.placeholder.com/100?text=No+Image'"
+              />
+              <label
+                class="bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg text-sm cursor-pointer"
+              >
+                <i class="fas fa-upload mr-1"></i> เลือกรูป
+                <input
+                  type="file"
+                  id="imageInput"
+                  accept="image/*"
+                  class="hidden"
+                  onchange="previewImage(event)"
+                />
+              </label>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">ไม่บังคับ (ถ้าไม่เปลี่ยนรูปเดิมจะคงไว้)</p>
+          </div>
+
+          <!-- ชื่อ -->
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อเมนู *</label>
+            <input
+              id="menuName"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="เช่น ผัดไทยกุ้งสด"
+            />
+          </div>
+
+          <!-- หมวด -->
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">หมวดหมู่</label>
+            <input
+              id="menuCategory"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="เช่น อาหารจานเดียว"
+            />
+          </div>
+
+          <!-- ราคา -->
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">ราคา (บาท) *</label>
+            <input
+              id="menuPrice"
+              type="number"
+              min="0"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="0"
+            />
+          </div>
+
+          <!-- รายละเอียด -->
+          <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">รายละเอียด</label>
+            <textarea
+              id="menuDesc"
+              rows="3"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="คำอธิบายเมนู (ถ้ามี)"
+            ></textarea>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              onclick="closeFormModal()"
+              class="flex-1 bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg active:scale-95"
+            >
+              ยกเลิก
+            </button>
+            <button
+              id="saveBtn"
+              onclick="saveMenu()"
+              class="flex-[2] bg-blue-600 text-white font-bold py-2.5 rounded-lg shadow active:scale-95 disabled:opacity-60"
+            >
+              <span id="saveBtnText">บันทึก</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">
+      <i class="fas fa-info-circle"></i>
+      <span id="toastText">ข้อความ</span>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDocs,
+        addDoc,
+        updateDoc,
+        doc,
+        deleteDoc,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+      import {
+        getStorage,
+        ref as storageRef,
+        uploadBytes,
+        getDownloadURL,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAhJaUZhl14mlJ7I_FVMu2fuMg6qAKspO4",
+        authDomain: "restaurant-101a.firebaseapp.com",
+        projectId: "restaurant-101a",
+        storageBucket: "restaurant-101a.firebasestorage.app",
+        messagingSenderId: "35898180691",
+        appId: "1:35898180691:web:21e39b2796018d48e432a6",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+
+      let menus = [];
+      let currentEditId = null;
+      let pendingFile = null;
+      let currentImageUrl = "";
+
+      const listEl = document.getElementById("menuList");
+
+      // ---------- Load ----------
+      window.loadMenus = async function () {
+        listEl.innerHTML = `
+          <div class="text-center py-20 text-gray-500">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
+          </div>`;
+        try {
+          const snap = await getDocs(collection(db, "devices"));
+          menus = snap.docs.map((d) => {
+            const v = d.data();
+            return {
+              id: d.id,
+              title: v.menu_name || v.device_name || "",
+              category: v.menu_category || v.device_section || "อื่นๆ",
+              price: Number(v.base_price ?? v.price ?? 0),
+              desc: v.description || v.desc || "",
+              img: v.url || v.image || "",
+            };
+          });
+          renderList();
+        } catch (err) {
+          console.error(err);
+          listEl.innerHTML = `<p class="text-center text-red-500 py-10 text-sm">โหลดไม่สำเร็จ: ${err.message}</p>`;
+        }
+      };
+
+      // ---------- Render ----------
+      window.renderList = function () {
+        const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+        const filtered = q
+          ? menus.filter((m) => m.title.toLowerCase().includes(q))
+          : menus;
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = `<p class="text-center text-gray-400 py-10 text-sm">ไม่พบเมนู</p>`;
+          return;
+        }
+
+        listEl.innerHTML = filtered
+          .map(
+            (m) => `
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex gap-3 items-center">
+            <img src="${m.img || 'https://via.placeholder.com/80?text=No+Image'}"
+                 class="w-20 h-20 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                 onerror="this.src='https://via.placeholder.com/80?text=No+Image'"/>
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-gray-800 text-sm truncate">${escapeHtml(m.title) || "-"}</div>
+              <div class="text-xs text-gray-500 truncate">${escapeHtml(m.category) || "อื่นๆ"}</div>
+              <div class="text-blue-600 font-bold text-sm mt-1">${m.price.toLocaleString()} บาท</div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <button onclick='openEditModal("${m.id}")'
+                class="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95">
+                <i class="fas fa-pen"></i> แก้ไข
+              </button>
+              <button onclick='deleteMenu("${m.id}","${escapeAttr(m.title)}")'
+                class="bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95">
+                <i class="fas fa-trash"></i> ลบ
+              </button>
+            </div>
+          </div>`
+          )
+          .join("");
+      };
+
+      function escapeHtml(s) {
+        return String(s || "").replace(/[&<>"']/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+        );
+      }
+      function escapeAttr(s) {
+        return String(s || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      }
+
+      // ---------- Modal ----------
+      window.openAddModal = function () {
+        currentEditId = null;
+        pendingFile = null;
+        currentImageUrl = "";
+        document.getElementById("formTitle").innerText = "เพิ่มเมนูใหม่";
+        document.getElementById("editId").value = "";
+        document.getElementById("menuName").value = "";
+        document.getElementById("menuCategory").value = "";
+        document.getElementById("menuPrice").value = "";
+        document.getElementById("menuDesc").value = "";
+        document.getElementById("imageInput").value = "";
+        document.getElementById("previewImg").src = "https://via.placeholder.com/100?text=No+Image";
+        document.getElementById("formModal").classList.add("active");
+      };
+
+      window.openEditModal = function (id) {
+        const m = menus.find((x) => x.id === id);
+        if (!m) return;
+        currentEditId = id;
+        pendingFile = null;
+        currentImageUrl = m.img || "";
+        document.getElementById("formTitle").innerText = "แก้ไขเมนู";
+        document.getElementById("editId").value = id;
+        document.getElementById("menuName").value = m.title || "";
+        document.getElementById("menuCategory").value = m.category || "";
+        document.getElementById("menuPrice").value = m.price || 0;
+        document.getElementById("menuDesc").value = m.desc || "";
+        document.getElementById("imageInput").value = "";
+        document.getElementById("previewImg").src =
+          m.img || "https://via.placeholder.com/100?text=No+Image";
+        document.getElementById("formModal").classList.add("active");
+      };
+
+      window.closeFormModal = function () {
+        document.getElementById("formModal").classList.remove("active");
+      };
+      window.closeFormOnOverlay = function (e) {
+        if (e.target === e.currentTarget) closeFormModal();
+      };
+
+      window.previewImage = function (e) {
+        const f = e.target.files[0];
+        if (!f) return;
+        pendingFile = f;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          document.getElementById("previewImg").src = ev.target.result;
+        };
+        reader.readAsDataURL(f);
+      };
+
+      // ---------- Save ----------
+      window.saveMenu = async function () {
+        const name = document.getElementById("menuName").value.trim();
+        const category = document.getElementById("menuCategory").value.trim() || "อื่นๆ";
+        const priceRaw = document.getElementById("menuPrice").value;
+        const desc = document.getElementById("menuDesc").value.trim();
+        const price = Number(priceRaw);
+
+        if (!name) return showToast("กรุณากรอกชื่อเมนู", "fa-exclamation-circle", "#dc2626");
+        if (isNaN(price) || price < 0)
+          return showToast("กรุณากรอกราคาให้ถูกต้อง", "fa-exclamation-circle", "#dc2626");
+
+        const btn = document.getElementById("saveBtn");
+        const btnText = document.getElementById("saveBtnText");
+        btn.disabled = true;
+        btnText.innerText = "กำลังบันทึก...";
+
+        try {
+          let imgUrl = currentImageUrl;
+          if (pendingFile) {
+            const path = `menu_images/${Date.now()}_${pendingFile.name}`;
+            const sRef = storageRef(storage, path);
+            await uploadBytes(sRef, pendingFile);
+            imgUrl = await getDownloadURL(sRef);
+          }
+
+          if (currentEditId) {
+            // อัปเดต
+            await updateDoc(doc(db, "devices", currentEditId), {
+              menu_name: name,
+              menu_category: category,
+              base_price: price,
+              description: desc,
+              ...(imgUrl ? { url: imgUrl } : {}),
+            });
+            showToast("✅ แก้ไขเมนูสำเร็จ", "fa-check", "#16a34a");
+          } else {
+            // เพิ่มใหม่
+            await addDoc(collection(db, "devices"), {
+              menu_name: name,
+              menu_category: category,
+              base_price: price,
+              description: desc,
+              url: imgUrl || "",
+              createdAt: new Date(),
+            });
+            showToast("✅ เพิ่มเมนูสำเร็จ", "fa-check", "#16a34a");
+          }
+
+          closeFormModal();
+          loadMenus();
+        } catch (err) {
+          console.error(err);
+          showToast("❌ บันทึกไม่สำเร็จ: " + err.message, "fa-times", "#dc2626");
+        } finally {
+          btn.disabled = false;
+          btnText.innerText = "บันทึก";
+        }
+      };
+
+      // ---------- Delete ----------
+      window.deleteMenu = async function (id, name) {
+        if (!confirm(`ต้องการลบเมนู "${name}" ใช่หรือไม่?`)) return;
+        try {
+          await deleteDoc(doc(db, "devices", id));
+          showToast("🗑️ ลบเมนูสำเร็จ", "fa-check", "#16a34a");
+          loadMenus();
+        } catch (err) {
+          console.error(err);
+          showToast("❌ ลบไม่สำเร็จ: " + err.message, "fa-times", "#dc2626");
+        }
+      };
+
+      // ---------- Toast ----------
+      let toastTimer;
+      function showToast(msg, icon = "fa-info-circle", color = "#1f2937") {
+        const t = document.getElementById("toast");
+        document.getElementById("toastText").innerText = msg;
+        t.querySelector("i").className = `fas ${icon}`;
+        t.style.background = color;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
+      }
+
+      // init
+      loadMenus();
+    </script>
+  </body>
+</html>
