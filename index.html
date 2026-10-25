@@ -507,6 +507,10 @@
       }
 
       // ==================== Print Bill (เรียกสรุปยอด) ====================
+      // 💳 ตั้งค่า PromptPay ของร้าน (เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก)
+      const PROMPTPAY_ID = "0899100419";
+      const PROMPTPAY_NAME = "ครัวจันทร์เพ็ญ";
+
       async function printBillSlip(bill) {
         try {
           // ดึงออเดอร์ทั้งหมดของโต๊ะ/เซสชันนี้
@@ -556,6 +560,9 @@
             order_info: `🧾 บิลสรุปยอด | โต๊ะ ${bill.table}\n${now}`,
             items: items,
             total: total,
+            // 💳 PromptPay — server จะสร้าง QR พร้อมยอดให้
+            promptpay_id: PROMPTPAY_ID,
+            promptpay_name: PROMPTPAY_NAME,
             footer: [
               bill.sessionId ? `👤 ${bill.sessionId}` : "",
               `ขอบคุณที่ใช้บริการ 🙏`,
