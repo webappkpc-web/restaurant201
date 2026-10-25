@@ -7,7 +7,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Kitchen Order System 1947</title>
+    <title>Kitchen Order System</title>
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -23,6 +23,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
       }
 
       #refreshingStatus {
@@ -44,10 +46,6 @@
         display: flex;
         align-items: center;
         gap: 8px;
-      }
-
-      .section-title i {
-        font-size: 1.3rem;
       }
 
       .order-container {
@@ -171,7 +169,6 @@
         margin-left: 8px;
       }
 
-      /* Print server status indicator */
       #printServerStatus {
         font-size: 0.75rem;
         padding: 2px 8px;
@@ -188,9 +185,7 @@
         color: #c62828;
       }
 
-      /* ปุ่มและหน้าต่างพิมพ์ QR Code โต๊ะ */
       .primary-button {
-        /* ขนาดและตัวอักษรให้เท่ากับป้าย #printServerStatus */
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -258,7 +253,6 @@
       .cancel-button { background: #e5e7eb; color: #222; }
       .print-button { background: #15803d; color: white; }
       .print-button:disabled { opacity: .55; cursor: wait; }
-
     </style>
   </head>
   <body>
@@ -320,21 +314,17 @@
       const db = getFirestore(app);
 
       // ==================== Print Server Config ====================
-      // ⚠️ เปลี่ยน IP นี้ให้ตรงกับเครื่องที่รัน print_server.py
       const PRINT_SERVER_URL = "http://192.168.1.73:5000";
-      const PRINT_API_KEY = "kJ8xN2mP9qR4tW7yB3vC6zF1hL5sD0aE"; // ถ้าเปิดใช้ API Key ใน Flask ให้ใส่ค่านี้
+      const PRINT_API_KEY = "kJ8xN2mP9qR4tW7yB3vC6zF1hL5sD0aE";
       const SHOP_NAME = "ครัวจันทร์เพ็ญ";
 
       const statusEl = document.getElementById("refreshingStatus");
       const orderContainer = document.getElementById("orderList");
       const callContainer = document.getElementById("callList");
-      const orderCountSpan = document.getElementById("orderCount");
-      const callCountSpan = document.getElementById("callCount");
       const printServerStatusEl = document.getElementById("printServerStatus");
 
       // ==================== Helper Functions ====================
       function getNextStatus(current) {
-        console.log(`getNextStatus: current = ${current}`);
         if (current === "pending") return "cooking";
         if (current === "cooking") return "done";
         if (current === "done") return "done";
@@ -405,36 +395,17 @@
         `;
         toast.innerText = message;
         document.body.appendChild(toast);
-
-        setTimeout(() => {
-          toast.remove();
-        }, 2000);
+        setTimeout(() => toast.remove(), 2000);
       }
 
       function updateOrderCount() {
-        if (!orderCountSpan) return;
-
         const orders = document.querySelectorAll(".order-card:not(.fade-out)");
-        const count = orders.length;
-        if (count > 0) {
-          orderCountSpan.style.display = "inline-block";
-          orderCountSpan.innerText = count;
-        } else {
-          orderCountSpan.style.display = "none";
-        }
+        // ไม่มี badge ที่ header แล้ว - คงไว้เผื่ออนาคต
       }
 
       function updateCallCount() {
-        if (!callCountSpan) return;
-
         const calls = document.querySelectorAll(".call-card:not(.fade-out)");
-        const count = calls.length;
-        if (count > 0) {
-          callCountSpan.style.display = "inline-block";
-          callCountSpan.innerText = count;
-        } else {
-          callCountSpan.style.display = "none";
-        }
+        // ไม่มี badge ที่ header แล้ว - คงไว้เผื่ออนาคต
       }
 
       // ==================== Print Server Status ====================
@@ -464,7 +435,6 @@
       }
 
       // ==================== Print Functions ====================
-      // ฟังก์ชันกลางสำหรับส่งงานพิมพ์ไปยัง Print Server (Python/Flask)
       async function postToPrintServer(payload) {
         try {
           const headers = { "Content-Type": "application/json" };
@@ -504,16 +474,11 @@
               qty: item.qty,
               name: item.title + (item.option ? ` (${item.option})` : ""),
               price: 0,
+              note: item.additionalDetail || "",
             },
           ],
-          footer: [
-            item.additionalDetail ? `📝 ${item.additionalDetail}` : "",
-            `👤 ${item.sessionId || "-"}`,
-          ]
-            .filter(Boolean)
-            .join("\n"),
+          footer: `👤 ${item.sessionId || "-"}`,
         };
-
         const ok = await postToPrintServer(payload);
         if (ok) showToast(`พิมพ์เข้าครัว: ${item.title}`, "info");
       }
@@ -524,7 +489,6 @@
           hour: "2-digit",
           minute: "2-digit",
         });
-
         const payload = {
           shop_name: SHOP_NAME,
           order_info: `✅ เสิร์ฟแล้ว | โต๊ะ ${item.table} | ${now}`,
@@ -533,20 +497,82 @@
               qty: item.qty,
               name: item.title + (item.option ? ` (${item.option})` : ""),
               price: 0,
+              note: item.additionalDetail || "",
             },
           ],
-          footer: [
-            item.additionalDetail ? `📝 ${item.additionalDetail}` : "",
-            `👤 ${item.sessionId || "-"}`,
-          ]
-            .filter(Boolean)
-            .join("\n"),
+          footer: `👤 ${item.sessionId || "-"}`,
         };
-
         const ok = await postToPrintServer(payload);
         if (ok) showToast(`พิมพ์สลิปเสิร์ฟ: ${item.title}`, "info");
       }
 
+      // ==================== Print Bill (เรียกสรุปยอด) ====================
+      async function printBillSlip(bill) {
+        try {
+          // ดึงออเดอร์ทั้งหมดของโต๊ะ/เซสชันนี้
+          const ordersSnap = await getDocs(collection(db, "orders"));
+          const items = [];
+          let computedTotal = 0;
+
+          ordersSnap.forEach((d) => {
+            const o = d.data();
+            const sameTable = String(o.table) === String(bill.table);
+            const sameSession = bill.sessionId
+              ? o.sessionId === bill.sessionId
+              : true;
+            if (sameTable && sameSession) {
+              const price = Number(o.price || 0);
+              const lineTotal = price * Number(o.qty || 1);
+              computedTotal += lineTotal;
+              items.push({
+                qty: Number(o.qty || 1),
+                name: o.title + (o.option ? ` (${o.option})` : ""),
+                price: lineTotal,
+                note: o.additionalDetail || "",
+              });
+            }
+          });
+
+          if (items.length === 0) {
+            showToast("ไม่พบรายการอาหารของโต๊ะนี้", "error");
+            return false;
+          }
+
+          const total =
+            Number(bill.totalPrice) > 0
+              ? Number(bill.totalPrice)
+              : computedTotal;
+
+          const now = new Date().toLocaleString("th-TH", {
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          });
+
+          const payload = {
+            shop_name: SHOP_NAME,
+            order_info: `🧾 บิลสรุปยอด | โต๊ะ ${bill.table}\n${now}`,
+            items: items,
+            total: total,
+            footer: [
+              bill.sessionId ? `👤 ${bill.sessionId}` : "",
+              `ขอบคุณที่ใช้บริการ 🙏`,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          };
+
+          const ok = await postToPrintServer(payload);
+          if (ok) showToast(`พิมพ์บิลโต๊ะ ${bill.table} สำเร็จ`, "info");
+          return ok;
+        } catch (err) {
+          console.error("printBillSlip error:", err);
+          showToast(`พิมพ์บิลไม่สำเร็จ: ${err.message}`, "error");
+          return false;
+        }
+      }
 
       // ==================== พิมพ์ QR Code สำหรับโต๊ะ ====================
       const tableQrModal = document.getElementById("tableQrModal");
@@ -557,6 +583,7 @@
         tableQrModal.classList.add("show");
         tableQrNumber.value = "";
         printTableQrButton.disabled = false;
+        printTableQrButton.textContent = "พิมพ์บาร์โค้ด";
         setTimeout(() => tableQrNumber.focus(), 50);
       }
 
@@ -582,20 +609,18 @@
           return;
         }
 
-        // URL ที่ลูกค้าสแกนแล้วจะเปิดหน้าสั่งอาหารของโต๊ะนี้
         const tableUrl = `https://webappkpc-web.github.io/restaurant101/?table=${encodeURIComponent(tableNumber)}`;
 
         printTableQrButton.disabled = true;
         printTableQrButton.textContent = "กำลังส่งพิมพ์...";
 
-        // print_server.py ต้องรองรับฟิลด์ qr_code และสั่งพิมพ์ QR ผ่านเครื่องพิมพ์ ESC/POS
         const payload = {
           shop_name: SHOP_NAME,
           order_info: `QR Code สำหรับโต๊ะ ${tableNumber}`,
           items: [],
           footer: tableUrl,
           qr_code: tableUrl,
-          qr_label: `โต๊ะ ${tableNumber}`
+          qr_label: `โต๊ะ ${tableNumber}`,
         };
 
         const ok = await postToPrintServer(payload);
@@ -622,11 +647,11 @@
             <span class="menu-name">${escapeHtml(item.title)} (x${item.qty})</span>
             <span class="time-stamp">${timeStr}</span>
           </div>
-          ${item.option ? `<div class="text-sm text-orange-600 mb-1">🍽️ ตัวเลือก: ${escapeHtml(item.option)}</div>` : ""}
-          ${item.additionalDetail ? `<div class="text-xs text-gray-500 mb-2">📝 ${escapeHtml(item.additionalDetail)}</div>` : ""}
+          ${item.option ? `<div style="font-size:0.9rem;color:#e67e22;margin-bottom:4px;">🍽️ ตัวเลือก: ${escapeHtml(item.option)}</div>` : ""}
+          ${item.additionalDetail ? `<div style="font-size:0.85rem;color:#777;margin-bottom:6px;">📝 ${escapeHtml(item.additionalDetail)}</div>` : ""}
           <div class="order-status-row">
             <div>โต๊ะ: ${escapeHtml(item.table)} | สถานะ: <strong>${getStatusThai(item.status)}</strong></div>
-            <div class="badge-session">👤 ${escapeHtml(item.sessionId || '-')}</div>
+            <div class="badge-session">👤 ${escapeHtml(item.sessionId || "-")}</div>
           </div>
         `;
 
@@ -639,16 +664,11 @@
             const currentStatus = card.dataset.status;
             const nextStatus = getNextStatus(currentStatus);
 
-            console.log(`🔘 กดที่: ${item.title}, สถานะปัจจุบัน: ${currentStatus} -> ${nextStatus}`);
-
-            // ✅ พิมพ์เข้าครัว (pending -> cooking) — ไม่ await ให้ UI ไม่รอ
             if (currentStatus === "pending" && nextStatus === "cooking") {
               printKitchenTicket(item);
             }
-
-            // ✅ พิมพ์สลิปเสิร์ฟ (cooking -> done)
             if (currentStatus === "cooking" && nextStatus === "done") {
-              printServedSlip(item);
+              // printServedSlip(item);
             }
 
             card.style.opacity = "0.5";
@@ -703,9 +723,7 @@
 
         div.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <strong>${icon} ${escapeHtml(item.table)} ${label}</strong>
-            </div>
+            <div><strong>${icon} ${escapeHtml(item.table)} ${label}</strong></div>
             <div style="text-align: right;">
               ${isBill ? `<strong>${price} บาท</strong>` : ""}
             </div>
@@ -720,6 +738,17 @@
           if (div.classList.contains("fade-out")) return;
 
           div.style.pointerEvents = "none";
+
+          // ✅ เรียกสรุปยอด → พิมพ์บิลก่อนปิดการ์ด
+          if (isBill) {
+            const ok = await printBillSlip(item);
+            if (!ok) {
+              // พิมพ์ไม่สำเร็จ — เปิดให้กดใหม่ได้
+              div.style.pointerEvents = "";
+              return;
+            }
+          }
+
           div.classList.add("fade-out");
 
           try {
@@ -764,15 +793,13 @@
         unsubscribeOrders = onSnapshot(
           q,
           (snapshot) => {
-            if (isFirstLoad) {
-              statusEl.style.display = "inline";
-            }
+            if (isFirstLoad) statusEl.style.display = "inline";
 
             const activeOrders = [];
-            snapshot.forEach((doc) => {
-              const data = doc.data();
+            snapshot.forEach((d) => {
+              const data = d.data();
               if (data.status === "pending" || data.status === "cooking") {
-                activeOrders.push({ id: doc.id, ...data });
+                activeOrders.push({ id: d.id, ...data });
               }
             });
 
@@ -858,33 +885,23 @@
         let isFirstLoad = true;
 
         const updateCallList = () => {
-          if (isFirstLoad) {
-            statusEl.style.display = "inline";
-          }
+          if (isFirstLoad) statusEl.style.display = "inline";
 
           Promise.all([getDocs(staffQuery), getDocs(billQuery)])
             .then(([staffSnapshot, billSnapshot]) => {
               const combined = [];
 
-              staffSnapshot.forEach((doc) => {
-                const data = doc.data();
+              staffSnapshot.forEach((d) => {
+                const data = d.data();
                 if (data.status === "pending") {
-                  combined.push({
-                    id: doc.id,
-                    type: "staff",
-                    data: data,
-                  });
+                  combined.push({ id: d.id, type: "staff", data });
                 }
               });
 
-              billSnapshot.forEach((doc) => {
-                const data = doc.data();
+              billSnapshot.forEach((d) => {
+                const data = d.data();
                 if (data.status === "requested") {
-                  combined.push({
-                    id: doc.id,
-                    type: "bill",
-                    data: data,
-                  });
+                  combined.push({ id: d.id, type: "bill", data });
                 }
               });
 
@@ -945,7 +962,6 @@
         console.log("🚀 เริ่มต้นระบบ...");
         console.log("🖨️ Print Server:", PRINT_SERVER_URL);
 
-        // เช็ค print server ทันที และทุก 30 วินาที
         checkPrintServer();
         setInterval(checkPrintServer, 30000);
 
