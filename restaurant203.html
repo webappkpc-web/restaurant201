@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>รายงานยอดขาย - ครัวจันทร์เพ็ญ</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding: 15px;
+        background-color: #f4f4f9;
+        margin: 0;
+        color: #333;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        margin: 0;
+        color: #1e293b;
+      }
+
+      /* แถบปุ่มเลือกช่วงเวลาด้านบน */
+      .time-filter {
+        display: flex;
+        background: #e2e8f0;
+        padding: 4px;
+        border-radius: 10px;
+        gap: 4px;
+      }
+
+      .filter-btn {
+        border: none;
+        background: transparent;
+        padding: 8px 16px;
+        border-radius: 7px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .filter-btn.active {
+        background: #ffffff;
+        color: #2563eb;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      /* Grid การ์ดสรุปยอด */
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 18px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+        border: 1px solid #e2e8f0;
+      }
+
+      .card-title {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+
+      .card-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .card-subtext {
+        font-size: 0.8rem;
+        color: #10b981;
+        margin-top: 4px;
+      }
+
+      /* Layout 2 คอลัมน์สำหรับเมนูขายดีและตาราง */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .section-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+        border: 1px solid #e2e8f0;
+      }
+
+      .section-card h2 {
+        font-size: 1.1rem;
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #1e293b;
+        border-bottom: 2px solid #f1f5f9;
+        padding-bottom: 8px;
+      }
+
+      /* รายการเมนูขายดี */
+      .top-menu-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .top-menu-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f5f9;
+      }
+
+      .top-menu-item:last-child {
+        border-bottom: none;
+      }
+
+      .menu-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .rank-badge {
+        background: #eff6ff;
+        color: #2563eb;
+        font-weight: 700;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+      }
+
+      /* ตารางประวัติรายการ */
+      .table-wrapper {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.9rem;
+      }
+
+      th {
+        background-color: #f8fafc;
+        color: #475569;
+        padding: 10px 12px;
+        font-weight: 600;
+        border-bottom: 2px solid #e2e8f0;
+      }
+
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+      }
+
+      tr:hover {
+        background-color: #f8fafc;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 30px;
+        color: #94a3b8;
+      }
+
+      #loadingSpinner {
+        font-size: 0.85rem;
+        color: #2563eb;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- หัวข้อและแถบเลือกเวลาด้านบน -->
+    <header>
+      <div>
+        <h1>📊 รายงานยอดขาย - ครัวจันทร์เพ็ญ</h1>
+        <span id="loadingSpinner" style="display: none;">🔄 กำลังโหลดข้อมูล...</span>
+      </div>
+      <div class="time-filter">
+        <button class="filter-btn active" data-period="day">วันนี้</button>
+        <button class="filter-btn" data-period="week">สัปดาห์นี้</button>
+        <button class="filter-btn" data-period="month">เดือนนี้</button>
+      </div>
+    </header>
+
+    <!-- การ์ดแสดงข้อมูลสรุปหลัก -->
+    <div class="metrics-grid">
+      <div class="card">
+        <div class="card-title">ยอดขายรวม</div>
+        <div class="card-value" id="totalRevenue">฿0</div>
+        <div class="card-subtext" id="revenueSubtext">อัปเดตเรียลไทม์</div>
+      </div>
+      <div class="card">
+        <div class="card-title">จำนวนบิล / ออเดอร์</div>
+        <div class="card-value" id="totalBills">0</div>
+      </div>
+      <div class="card">
+        <div class="card-title">ยอดขายเฉลี่ย / บิล</div>
+        <div class="card-value" id="avgBillValue">฿0</div>
+      </div>
+    </div>
+
+    <!-- รายละเอียดด้านล่าง -->
+    <div class="content-grid">
+      <!-- เมนูขายดี -->
+      <div class="section-card">
+        <h2>🔥 5 อันดับเมนูขายดี</h2>
+        <ul class="top-menu-list" id="topMenuList">
+          <div class="empty-state">ไม่มีข้อมูล</div>
+        </ul>
+      </div>
+
+      <!-- รายการออเดอร์ตามช่วงเวลา -->
+      <div class="section-card">
+        <h2>🧾 ประวัติออเดอร์ตามช่วงเวลาที่เลือก</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>เวลา</th>
+                <th>โต๊ะ</th>
+                <th>รายการ</th>
+                <th>ยอดรวม</th>
+              </tr>
+            </thead>
+            <tbody id="orderTableBody">
+              <tr>
+                <td colspan="4" class="empty-state">กำลังโหลดข้อมูล...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDocs,
+        query,
+        orderBy,
+        Timestamp
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      // Config ของ Firebase ตามไฟล์เดิมของคุณ
+      const firebaseConfig = {
+        apiKey: "AIzaSyAhJaUZhl14mlJ7I_FVMu2fuMg6qAKspO4",
+        authDomain: "restaurant-101a.firebaseapp.com",
+        projectId: "restaurant-101a",
+        storageBucket: "restaurant-101a.firebasestorage.app",
+        messagingSenderId: "35898180691",
+        appId: "1:35898180691:web:21e39b2796018d48e432a6",
+        measurementId: "G-5KR88CLQHM"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      let currentPeriod = "day"; // Default: วันนี้
+      let allOrders = [];
+
+      // Elements
+      const totalRevenueEl = document.getElementById("totalRevenue");
+      const totalBillsEl = document.getElementById("totalBills");
+      const avgBillValueEl = document.getElementById("avgBillValue");
+      const topMenuListEl = document.getElementById("topMenuList");
+      const orderTableBodyEl = document.getElementById("orderTableBody");
+      const loadingSpinner = document.getElementById("loadingSpinner");
+      const filterBtns = document.querySelectorAll(".filter-btn");
+
+      // ==================== Helper Functions ====================
+      function formatMoney(amount) {
+        return "฿" + Number(amount || 0).toLocaleString("th-TH", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        });
+      }
+
+      function isSameDay(d1, d2) {
+        return (
+          d1.getFullYear() === d2.getFullYear() &&
+          d1.getMonth() === d2.getMonth() &&
+          d1.getDate() === d2.getDate()
+        );
+      }
+
+      function isSameWeek(d1, d2) {
+        const startOfWeek = (d) => {
+          const date = new Date(d);
+          const day = date.getDay();
+          const diff = date.getDate() - day + (day === 0 ? -6 : 1); // เริ่มวันจันทร์
+          return new Date(date.setDate(diff)).setHours(0, 0, 0, 0);
+        };
+        return startOfWeek(d1) === startOfWeek(d2);
+      }
+
+      function isSameMonth(d1, d2) {
+        return (
+          d1.getFullYear() === d2.getFullYear() &&
+          d1.getMonth() === d2.getMonth()
+        );
+      }
+
+      function getOrderDate(item) {
+        if (!item.createdAt) return new Date(0);
+        if (item.createdAt.toDate) return item.createdAt.toDate();
+        if (item.createdAt.seconds) return new Date(item.createdAt.seconds * 1000);
+        return new Date(item.createdAt);
+      }
+
+      // ==================== Fetch & Process Data ====================
+      async function loadData() {
+        loadingSpinner.style.display = "inline";
+        try {
+          const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+          const snapshot = await getDocs(q);
+          
+          allOrders = [];
+          snapshot.forEach((doc) => {
+            allOrders.push({ id: doc.id, ...doc.data() });
+          });
+
+          renderDashboard();
+        } catch (err) {
+          console.error("Error loading sales data:", err);
+          orderTableBodyEl.innerHTML = `<tr><td colspan="4" class="empty-state" style="color:#ef4444;">โหลดข้อมูลไม่สำเร็จ: ${err.message}</td></tr>`;
+        } finally {
+          loadingSpinner.style.display = "none";
+        }
+      }
+
+      function renderDashboard() {
+        const now = new Date();
+
+        // 1. กรองออเดอร์ตามช่วงเวลาที่เลือก
+        const filteredOrders = allOrders.filter((item) => {
+          const itemDate = getOrderDate(item);
+          if (currentPeriod === "day") return isSameDay(itemDate, now);
+          if (currentPeriod === "week") return isSameWeek(itemDate, now);
+          if (currentPeriod === "month") return isSameMonth(itemDate, now);
+          return true;
+        });
+
+        // 2. คำนวณยอดรวม & สถิติ
+        let totalRevenue = 0;
+        const menuStats = {};
+
+        filteredOrders.forEach((o) => {
+          const price = Number(o.price || 0);
+          const qty = Number(o.qty || 1);
+          const lineTotal = price * qty;
+          totalRevenue += lineTotal;
+
+          // สถิติเมนูขายดี
+          const menuName = o.title || "ไม่ระบุชื่อเมนู";
+          if (!menuStats[menuName]) {
+            menuStats[menuName] = { qty: 0, total: 0 };
+          }
+          menuStats[menuName].qty += qty;
+          menuStats[menuName].total += lineTotal;
+        });
+
+        const totalBills = filteredOrders.length;
+        const avgBill = totalBills > 0 ? totalRevenue / totalBills : 0;
+
+        // แสดงผลการ์ด
+        totalRevenueEl.textContent = formatMoney(totalRevenue);
+        totalBillsEl.textContent = totalBills.toLocaleString();
+        avgBillValueEl.textContent = formatMoney(avgBill);
+
+        // 3. แสดงรายการ 5 อันดับเมนูขายดี
+        const sortedMenus = Object.entries(menuStats)
+          .sort((a, b) => b[1].qty - a[1].qty)
+          .slice(0, 5);
+
+        if (sortedMenus.length === 0) {
+          topMenuListEl.innerHTML = `<div class="empty-state">ไม่มีข้อมูลเมนูขายดีช่วงเวลานี้</div>`;
+        } else {
+          topMenuListEl.innerHTML = sortedMenus
+            .map(([name, stat], index) => `
+              <li class="top-menu-item">
+                <div class="menu-info">
+                  <span class="rank-badge">${index + 1}</span>
+                  <div>
+                    <strong style="display:block;">${name}</strong>
+                    <small style="color:#64748b;">จำนวน ${stat.qty} จาน</small>
+                  </div>
+                </div>
+                <strong>${formatMoney(stat.total)}</strong>
+              </li>
+            `).join("");
+        }
+
+        // 4. แสดงตารางประวัติออเดอร์
+        if (filteredOrders.length === 0) {
+          orderTableBodyEl.innerHTML = `<tr><td colspan="4" class="empty-state">ไม่พบบันทึกยอดขายในช่วงเวลานี้</td></tr>`;
+        } else {
+          orderTableBodyEl.innerHTML = filteredOrders
+            .map((o) => {
+              const d = getOrderDate(o);
+              const timeStr = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+              const dateStr = d.toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit" });
+              const lineTotal = Number(o.price || 0) * Number(o.qty || 1);
+
+              return `
+                <tr>
+                  <td>${dateStr} ${timeStr}</td>
+                  <td><strong>โต๊ะ ${o.table || "-"}</strong></td>
+                  <td>${o.title} (x${o.qty || 1})</td>
+                  <td><strong>${formatMoney(lineTotal)}</strong></td>
+                </tr>
+              `;
+            }).join("");
+        }
+      }
+
+      // ==================== Event Listeners ====================
+      filterBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          filterBtns.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentPeriod = btn.dataset.period;
+          renderDashboard();
+        });
+      });
+
+      // เริ่มทำงาน
+      loadData();
+    </script>
+  </body>
+</html>
