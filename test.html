@@ -185,23 +185,29 @@
         color: #c62828;
       }
 
-      /* ปุ่มจุด 3 จุด (Menu Dots) */
-      .menu-dots-btn {
-        background: transparent;
-        border: none;
-        font-size: 1.3rem;
-        cursor: pointer;
-        padding: 2px 8px;
-        border-radius: 8px;
-        margin-left: 4px;
-        color: #555;
+      .primary-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         vertical-align: middle;
+        margin-right: 8px;
+        border: 1px solid #c8e6c9;
+        border-radius: 10px;
+        padding: 2px 8px;
+        background: #e8f5e9;
+        color: #2e7d32;
+        font-family: inherit;
+        font-size: 0.75rem;
+        font-weight: normal;
+        line-height: normal;
+        cursor: pointer;
       }
-      .menu-dots-btn:hover {
-        background: #e2e8f0;
+      .primary-button:hover { background: #dff1e1; }
+      .primary-button:active { opacity: 0.8; }
+      .primary-button:focus-visible {
+        outline: 2px solid #2e7d32;
+        outline-offset: 2px;
       }
-
-      /* สไตล์ Modal กลางจอทั่วไป */
       .modal-backdrop {
         display: none;
         position: fixed;
@@ -247,68 +253,16 @@
       .cancel-button { background: #e5e7eb; color: #222; }
       .print-button { background: #15803d; color: white; }
       .print-button:disabled { opacity: .55; cursor: wait; }
-
-      /* เมนูเลือกใน Dialog จุด 3 จุด */
-      .options-menu-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 16px;
-      }
-      .option-item-btn {
-        width: 100%;
-        background: #f8fafc;
-        border: 1px solid #cbd5e1;
-        padding: 12px;
-        border-radius: 8px;
-        font-size: 1rem;
-        font-weight: 600;
-        color: #334155;
-        cursor: pointer;
-        text-align: left;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: background 0.1s;
-      }
-      .option-item-btn:hover {
-        background: #f1f5f9;
-      }
-      .option-item-btn:active {
-        background: #e2e8f0;
-      }
     </style>
   </head>
   <body>
     <h2>
       ครัวจันทร์เพ็ญ
-      <div>
-        <span id="printServerStatus" class="offline">🖨️ กำลังเชื่อมต่อ...</span>
-        <!-- ปุ่มจุด 3 จุด ด้านหลังสัญลักษณ์เครื่องพิมพ์ -->
-        <button id="openOptionsModal" class="menu-dots-btn" type="button" title="เมนูเพิ่มเติม">⋮</button>
-      </div>
+      <button id="openTableQrModal" class="primary-button" type="button">▦ พิมพ์ QR Code โต๊ะ</button>
+      <span id="printServerStatus" class="offline">🖨️ กำลังเชื่อมต่อ...</span>
       <span id="refreshingStatus" style="display: none">(กำลังรีเฟรช...)</span>
     </h2>
 
-    <!-- Dialog เมนูเลือกหลัก (เกิดจากการกดปุ่มจุด 3 จุด) -->
-    <div id="optionsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="optionsTitle">
-      <div class="modal-panel">
-        <h3 id="optionsTitle">จัดการระบบร้าน</h3>
-        <div class="options-menu-list">
-          <button id="menuPrintQr" class="option-item-btn" type="button">
-            <span>▦</span> พิมพ์ QR Code โต๊ะ
-          </button>
-          <button id="menuManageShop" class="option-item-btn" type="button">
-            <span>⚙️</span> จัดการร้าน
-          </button>
-        </div>
-        <div class="modal-actions">
-          <button id="closeOptionsModal" class="cancel-button" type="button">ปิด</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dialog พิมพ์ QR Code โต๊ะ -->
     <div id="tableQrModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tableQrTitle">
       <div class="modal-panel">
         <h3 id="tableQrTitle">พิมพ์บาร์โค้ดโต๊ะ</h3>
@@ -446,10 +400,12 @@
 
       function updateOrderCount() {
         const orders = document.querySelectorAll(".order-card:not(.fade-out)");
+        // ไม่มี badge ที่ header แล้ว - คงไว้เผื่ออนาคต
       }
 
       function updateCallCount() {
         const calls = document.querySelectorAll(".call-card:not(.fade-out)");
+        // ไม่มี badge ที่ header แล้ว - คงไว้เผื่ออนาคต
       }
 
       // ==================== Print Server Status ====================
@@ -551,11 +507,13 @@
       }
 
       // ==================== Print Bill (เรียกสรุปยอด) ====================
+      // 💳 ตั้งค่า PromptPay ของร้าน (เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก)
       const PROMPTPAY_ID = "0899100419";
       const PROMPTPAY_NAME = "ครัวจันทร์เพ็ญ";
 
       async function printBillSlip(bill) {
         try {
+          // ดึงออเดอร์ทั้งหมดของโต๊ะ/เซสชันนี้
           const ordersSnap = await getDocs(collection(db, "orders"));
           const items = [];
           let computedTotal = 0;
@@ -602,6 +560,7 @@
             order_info: `🧾 บิลสรุปยอด | โต๊ะ ${bill.table}\n${now}`,
             items: items,
             total: total,
+            // 💳 PromptPay — server จะสร้าง QR พร้อมยอดให้
             promptpay_id: PROMPTPAY_ID,
             promptpay_name: PROMPTPAY_NAME,
             footer: [
@@ -622,48 +581,24 @@
         }
       }
 
-      // ==================== Modal ควบคุมปุ่มจุด 3 จุด และ พิมพ์ QR Code ====================
-      const optionsModal = document.getElementById("optionsModal");
-      const openOptionsModalBtn = document.getElementById("openOptionsModal");
-      const closeOptionsModalBtn = document.getElementById("closeOptionsModal");
-      const menuPrintQr = document.getElementById("menuPrintQr");
-      const menuManageShop = document.getElementById("menuManageShop");
-
+      // ==================== พิมพ์ QR Code สำหรับโต๊ะ ====================
       const tableQrModal = document.getElementById("tableQrModal");
       const tableQrNumber = document.getElementById("tableQrNumber");
       const printTableQrButton = document.getElementById("printTableQr");
 
-      // เปิด/ปิด Dialog เมนูจุด 3 จุด
-      openOptionsModalBtn.addEventListener("click", () => {
-        optionsModal.classList.add("show");
-      });
-      closeOptionsModalBtn.addEventListener("click", () => {
-        optionsModal.classList.remove("show");
-      });
-      optionsModal.addEventListener("click", (e) => {
-        if (e.target === optionsModal) optionsModal.classList.remove("show");
-      });
-
-      // เมื่อกดปุ่ม "พิมพ์ QR Code โต๊ะ" จากเมนูย่อย
-      menuPrintQr.addEventListener("click", () => {
-        optionsModal.classList.remove("show"); // ปิดเมนูหลักก่อน
+      function openTableQrModal() {
         tableQrModal.classList.add("show");
         tableQrNumber.value = "";
         printTableQrButton.disabled = false;
         printTableQrButton.textContent = "พิมพ์บาร์โค้ด";
         setTimeout(() => tableQrNumber.focus(), 50);
-      });
-
-      // เมื่อกดปุ่ม "จัดการร้าน" (ยังไม่ต้องเพิ่มการทำงาน ตามที่ระบุ)
-      menuManageShop.addEventListener("click", () => {
-        optionsModal.classList.remove("show");
-        showToast("ฟังก์ชันจัดการร้านกำลังพัฒนา", "info");
-      });
+      }
 
       function closeTableQrModal() {
         tableQrModal.classList.remove("show");
       }
 
+      document.getElementById("openTableQrModal").addEventListener("click", openTableQrModal);
       document.getElementById("cancelTableQr").addEventListener("click", closeTableQrModal);
       tableQrModal.addEventListener("click", (event) => {
         if (event.target === tableQrModal) closeTableQrModal();
@@ -739,6 +674,9 @@
             if (currentStatus === "pending" && nextStatus === "cooking") {
               printKitchenTicket(item);
             }
+            if (currentStatus === "cooking" && nextStatus === "done") {
+              // printServedSlip(item);
+            }
 
             card.style.opacity = "0.5";
             card.style.pointerEvents = "none";
@@ -808,9 +746,11 @@
 
           div.style.pointerEvents = "none";
 
+          // ✅ เรียกสรุปยอด → พิมพ์บิลก่อนปิดการ์ด
           if (isBill) {
             const ok = await printBillSlip(item);
             if (!ok) {
+              // พิมพ์ไม่สำเร็จ — เปิดให้กดใหม่ได้
               div.style.pointerEvents = "";
               return;
             }
