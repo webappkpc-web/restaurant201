@@ -1,0 +1,3 @@
+index            หน้าหลัก
+restaurant202    จัดการเมนู
+restaurant203    รายงานยอดขาย
