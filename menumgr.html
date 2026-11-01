@@ -193,40 +193,40 @@
       </button>
     </div>
 
-    <!-- Main Layout (บังคับแสดง 2 คอลัมน์ตลอดเวลา ทั้งมือถือและคอมพิวเตอร์) -->
-    <div class="max-w-5xl mx-auto px-4 pb-24">
-      <div class="flex flex-row gap-4">
-        <!-- Sidebar หมวดหมู่ -->
-        <aside class="w-64 flex-shrink-0">
-          <div class="sticky top-24 space-y-2">
-            <div id="categorySidebar" class="sidebar">
-              <div class="text-center py-6 text-gray-400 text-sm">
-                <i class="fas fa-spinner fa-spin"></i> กำลังโหลดหมวด...
-              </div>
-            </div>
-            <!-- ปุ่มเพิ่มหมวด -->
-            <button
-              onclick="openAddCategoryModal()"
-              class="w-full bg-white hover:bg-gray-50 text-blue-600 border border-blue-200 font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-2"
-            >
-              <i class="fas fa-plus-circle"></i> เพิ่มหมวด
-            </button>
+<!-- Main Layout (บังคับแสดง 2 คอลัมน์ 50/50 ตลอดเวลา ทั้งมือถือและคอมพิวเตอร์) -->
+<div class="max-w-5xl mx-auto px-4 pb-24">
+  <div class="flex flex-row gap-4">
+    <!-- Sidebar หมวดหมู่ -->
+    <aside class="w-1/2 basis-1/2 min-w-0">
+      <div class="sticky top-24 space-y-2">
+        <div id="categorySidebar" class="sidebar">
+          <div class="text-center py-6 text-gray-400 text-sm">
+            <i class="fas fa-spinner fa-spin"></i> กำลังโหลดหมวด...
           </div>
-        </aside>
-
-        <!-- รายการอาหาร -->
-        <main class="flex-1 min-w-0">
-          <div id="menuList" class="space-y-3">
-            <div class="text-center py-20 text-gray-500">
-              <div
-                class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
-              ></div>
-              <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
-            </div>
-          </div>
-        </main>
+        </div>
+        <!-- ปุ่มเพิ่มหมวด -->
+        <button
+          onclick="openAddCategoryModal()"
+          class="w-full bg-white hover:bg-gray-50 text-blue-600 border border-blue-200 font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-2"
+        >
+          <i class="fas fa-plus-circle"></i> เพิ่มหมวด
+        </button>
       </div>
-    </div>
+    </aside>
+
+    <!-- รายการอาหาร -->
+    <main class="w-1/2 basis-1/2 min-w-0">
+      <div id="menuList" class="space-y-3">
+        <div class="text-center py-20 text-gray-500">
+          <div
+            class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
+          ></div>
+          <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
 
     <!-- Modal เพิ่ม/แก้ไขเมนู -->
     <div id="formModal" class="modal-overlay" onclick="closeFormOnOverlay(event)">
