@@ -79,20 +79,21 @@
         overflow: hidden;
       }
       .cat-btn {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        padding: 10px 14px;
-        font-size: 14px;
-        font-weight: 500;
-        color: #374151;
-        border-left: 4px solid transparent;
-        transition: all 0.15s ease;
-        cursor: pointer;
-        text-align: left;
-        gap: 8px;
-      }
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  border-left: 4px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  text-align: left;
+  gap: 8px;
+}
       .cat-btn:hover {
         background: #f9fafb;
       }
@@ -625,9 +626,9 @@
             <span class="cat-name truncate">
               <i class="fas fa-list mr-1"></i>ทุกหมวด
             </span>
-            <span class="flex items-center gap-1.5 flex-shrink-0">
-              <span class="badge-count">${menus.length}</span>
-            </span>
+            <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+  <span class="badge-count">${menus.length}</span>
+</span>
           </button>
         `;
 
@@ -641,27 +642,31 @@
             ? `<span class="priority-badge" title="priority = ${catObj.priority}">P${catObj.priority}</span>`
             : "";
           const editBtn = catObj
-            ? `<button
-                 class="edit-priority-btn"
-                 onclick="event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority})"
-                 title="แก้ไข priority">
-                 <i class="fas fa-pen"></i>
-               </button>`
-            : "";
+  ? `<span
+       class="edit-priority-btn"
+       role="button"
+       tabindex="0"
+       onclick="event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority})"
+       onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority}); }"
+       title="แก้ไข priority">
+       <i class="fas fa-pen"></i>
+     </span>`
+  : "";
 
           html += `
-            <button class="cat-btn ${currentCategory === cat ? "active" : ""}"
-                    onclick="selectCategory('${escapeAttr(cat)}')">
-              <span class="cat-name truncate">
-                <span class="truncate">${escapeHtml(cat)}</span>
-              </span>
-              <span class="flex items-center gap-1.5 flex-shrink-0">
-                ${priorityText}
-                ${editBtn}
-                <span class="badge-count">${count}</span>
-              </span>
-            </button>
-          `;
+  <button class="cat-btn ${currentCategory === cat ? "active" : ""}"
+          onclick="selectCategory('${escapeAttr(cat)}')">
+    <span class="cat-name truncate">
+      <span class="truncate">${escapeHtml(cat)}</span>
+    </span>
+
+    <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+      ${priorityText}
+      ${editBtn}
+      <span class="badge-count">${count}</span>
+    </span>
+  </button>
+`;
         });
 
         sidebar.innerHTML = html;
