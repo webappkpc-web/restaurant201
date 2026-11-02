@@ -79,21 +79,21 @@
         overflow: hidden;
       }
       .cat-btn {
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-  border-left: 4px solid transparent;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  text-align: left;
-  gap: 8px;
-}
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+        border-left: 4px solid transparent;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        text-align: left;
+        gap: 8px;
+      }
       .cat-btn:hover {
         background: #f9fafb;
       }
@@ -140,7 +140,7 @@
         color: #92400e;
       }
 
-      /* ปุ่มดินสอแก้ priority ใช้สไตล์คล้ายปุ่มแก้ไขเมนู */
+      /* ปุ่มดินสอแก้ priority */
       .cat-btn .edit-priority-btn {
         padding: 4px 8px;
         display: flex;
@@ -177,56 +177,66 @@
 
     <!-- Toolbar -->
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-2">
+      <!-- ปุ่ม Toggle สำหรับมือถือ (< 768px) -->
+      <button
+        onclick="toggleMobileSidebar()"
+        id="mobileSidebarToggle"
+        class="md:hidden bg-white border border-gray-300 text-gray-700 px-3.5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm active:scale-95 flex-shrink-0"
+      >
+        <i class="fas fa-bars text-blue-600"></i>
+        <span id="toggleButtonText">หมวดหมู่</span>
+      </button>
+
       <input
         id="searchInput"
         type="text"
         placeholder="ค้นหาชื่อเมนู..."
-        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"
         oninput="renderList()"
       />
       <button
         onclick="loadMenus()"
-        class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm active:scale-95"
+        class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm active:scale-95 flex-shrink-0"
         title="โหลดใหม่"
       >
         <i class="fas fa-rotate"></i>
       </button>
     </div>
 
-<!-- Main Layout (บังคับแสดง 2 คอลัมน์ 50/50 ตลอดเวลา ทั้งมือถือและคอมพิวเตอร์) -->
-<div class="max-w-5xl mx-auto px-4 pb-24">
-  <div class="flex flex-row gap-4">
-    <!-- Sidebar หมวดหมู่ -->
-    <aside class="w-1/2 basis-1/2 min-w-0">
-      <div class="sticky top-24 space-y-2">
-        <div id="categorySidebar" class="sidebar">
-          <div class="text-center py-6 text-gray-400 text-sm">
-            <i class="fas fa-spinner fa-spin"></i> กำลังโหลดหมวด...
+    <!-- Main Layout -->
+    <div class="max-w-5xl mx-auto px-4 pb-24">
+      <div class="flex flex-col md:flex-row gap-4">
+        <!-- Sidebar หมวดหมู่ (ซ่อนบนมือถือโดยค่าเริ่มต้น, แสดงปกติบน md ขึ้นไป) -->
+        <aside id="sidebarContainer" class="hidden md:block w-full md:w-1/2 md:basis-1/2 min-w-0">
+          <div class="md:sticky md:top-24 space-y-2">
+            <div id="categorySidebar" class="sidebar">
+              <div class="text-center py-6 text-gray-400 text-sm">
+                <i class="fas fa-spinner fa-spin"></i> กำลังโหลดหมวด...
+              </div>
+            </div>
+            <!-- ปุ่มเพิ่มหมวด -->
+            <button
+              onclick="openAddCategoryModal()"
+              class="w-full bg-white hover:bg-gray-50 text-blue-600 border border-blue-200 font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-2"
+            >
+              <i class="fas fa-plus-circle"></i> เพิ่มหมวด
+            </button>
           </div>
-        </div>
-        <!-- ปุ่มเพิ่มหมวด -->
-        <button
-          onclick="openAddCategoryModal()"
-          class="w-full bg-white hover:bg-gray-50 text-blue-600 border border-blue-200 font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-2"
-        >
-          <i class="fas fa-plus-circle"></i> เพิ่มหมวด
-        </button>
-      </div>
-    </aside>
+        </aside>
 
-    <!-- รายการอาหาร -->
-    <main class="w-1/2 basis-1/2 min-w-0">
-      <div id="menuList" class="space-y-3">
-        <div class="text-center py-20 text-gray-500">
-          <div
-            class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
-          ></div>
-          <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
-        </div>
+        <!-- รายการอาหาร -->
+        <main id="mainContent" class="w-full md:w-1/2 md:basis-1/2 min-w-0">
+          <div id="menuList" class="space-y-3">
+            <div class="text-center py-20 text-gray-500">
+              <div
+                class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
+              ></div>
+              <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
+            </div>
+          </div>
+        </main>
       </div>
-    </main>
-  </div>
-</div>
+    </div>
 
     <!-- Modal เพิ่ม/แก้ไขเมนู -->
     <div id="formModal" class="modal-overlay" onclick="closeFormOnOverlay(event)">
@@ -523,6 +533,21 @@
 
       const listEl = document.getElementById("menuList");
 
+      // ---------- Toggle Mobile Sidebar ----------
+      window.toggleMobileSidebar = function () {
+        const sidebar = document.getElementById("sidebarContainer");
+        const mainContent = document.getElementById("mainContent");
+        
+        // สลับสถานะการแสดงผลบนมือถือ
+        if (sidebar.classList.contains("hidden")) {
+          sidebar.classList.remove("hidden");
+          mainContent.classList.add("hidden"); // ซ่อนรายการชั่วคราวเพื่อให้เลือกหมวดได้ถนัด
+        } else {
+          sidebar.classList.add("hidden");
+          mainContent.classList.remove("hidden");
+        }
+      };
+
       // ---------- Load Categories ----------
       async function loadCategories() {
         try {
@@ -619,7 +644,7 @@
           currentCategory = "ทุกหมวด";
         }
 
-        // 5) render ปุ่ม "ทุกหมวด" (จัดเรียงทุกอย่างให้อยู่แถวเดียวกัน)
+        // 5) render ปุ่ม "ทุกหมวด"
         let html = `
           <button class="cat-btn ${currentCategory === "ทุกหมวด" ? "active" : ""}"
                   onclick="selectCategory('ทุกหมวด')">
@@ -627,46 +652,45 @@
               <i class="fas fa-list mr-1"></i>ทุกหมวด
             </span>
             <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-  <span class="badge-count">${menus.length}</span>
-</span>
+              <span class="badge-count">${menus.length}</span>
+            </span>
           </button>
         `;
 
-        // 6) render หมวดทั้งหมดใน Sidebar (ชื่อ, Priority, ปุ่มแก้ไข และจำนวนเมนู แถวเดียวกันทั้งหมด)
+        // 6) render หมวดทั้งหมดใน Sidebar
         finalCategories.forEach((cat) => {
           const count = counts[cat] || 0;
 
-          // หา priority ของหมวดนี้
           const catObj = categories.find((c) => c.name === cat);
           const priorityText = catObj
             ? `<span class="priority-badge" title="priority = ${catObj.priority}">P${catObj.priority}</span>`
             : "";
           const editBtn = catObj
-  ? `<span
-       class="edit-priority-btn"
-       role="button"
-       tabindex="0"
-       onclick="event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority})"
-       onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority}); }"
-       title="แก้ไข priority">
-       <i class="fas fa-pen"></i>
-     </span>`
-  : "";
+            ? `<span
+                 class="edit-priority-btn"
+                 role="button"
+                 tabindex="0"
+                 onclick="event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority})"
+                 onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority}); }"
+                 title="แก้ไข priority">
+                 <i class="fas fa-pen"></i>
+               </span>`
+            : "";
 
           html += `
-  <button class="cat-btn ${currentCategory === cat ? "active" : ""}"
-          onclick="selectCategory('${escapeAttr(cat)}')">
-    <span class="cat-name truncate">
-      <span class="truncate">${escapeHtml(cat)}</span>
-    </span>
+            <button class="cat-btn ${currentCategory === cat ? "active" : ""}"
+                    onclick="selectCategory('${escapeAttr(cat)}')">
+              <span class="cat-name truncate">
+                <span class="truncate">${escapeHtml(cat)}</span>
+              </span>
 
-    <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
-      ${priorityText}
-      ${editBtn}
-      <span class="badge-count">${count}</span>
-    </span>
-  </button>
-`;
+              <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                ${priorityText}
+                ${editBtn}
+                <span class="badge-count">${count}</span>
+              </span>
+            </button>
+          `;
         });
 
         sidebar.innerHTML = html;
@@ -684,6 +708,12 @@
         currentCategory = cat;
         renderSidebar();
         renderList();
+
+        // บนมือถือ เมื่อคลิกเลือกหมวดแล้ว ให้ซ่อน Sidebar และกลับมาแสดงรายการอาหารอัตโนมัติ
+        if (window.innerWidth < 768) {
+          document.getElementById("sidebarContainer").classList.add("hidden");
+          document.getElementById("mainContent").classList.remove("hidden");
+        }
       };
 
       // ---------- Add Category Modal ----------
