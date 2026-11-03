@@ -103,6 +103,11 @@
         font-weight: 700;
         border-left-color: #2563eb;
       }
+      .cat-btn.active.recommend-cat {
+        background: #fff7ed;
+        color: #c2410c;
+        border-left-color: #f97316;
+      }
       .cat-btn .badge-count {
         font-size: 11px;
         background: #e5e7eb;
@@ -115,6 +120,10 @@
       .cat-btn.active .badge-count {
         background: #dbeafe;
         color: #2563eb;
+      }
+      .cat-btn.active.recommend-cat .badge-count {
+        background: #ffedd5;
+        color: #c2410c;
       }
       .cat-btn .cat-name {
         display: flex;
@@ -206,7 +215,7 @@
     <!-- Main Layout -->
     <div class="max-w-5xl mx-auto px-4 pb-24">
       <div class="flex flex-col md:flex-row gap-4">
-        <!-- Sidebar หมวดหมู่ (ซ่อนบนมือถือโดยค่าเริ่มต้น, แสดงปกติบน md ขึ้นไป) -->
+        <!-- Sidebar หมวดหมู่ -->
         <aside id="sidebarContainer" class="hidden md:block w-full md:w-1/2 md:basis-1/2 min-w-0">
           <div class="md:sticky md:top-24 space-y-2">
             <div id="categorySidebar" class="sidebar">
@@ -538,10 +547,9 @@
         const sidebar = document.getElementById("sidebarContainer");
         const mainContent = document.getElementById("mainContent");
         
-        // สลับสถานะการแสดงผลบนมือถือ
         if (sidebar.classList.contains("hidden")) {
           sidebar.classList.remove("hidden");
-          mainContent.classList.add("hidden"); // ซ่อนรายการชั่วคราวเพื่อให้เลือกหมวดได้ถนัด
+          mainContent.classList.add("hidden");
         } else {
           sidebar.classList.add("hidden");
           mainContent.classList.remove("hidden");
@@ -620,31 +628,29 @@
       window.renderSidebar = function () {
         const sidebar = document.getElementById("categorySidebar");
 
-        // 1) นับจำนวนเมนูในแต่ละหมวด
         const counts = {};
+        let recommendCount = 0;
+        
         menus.forEach((m) => {
           const c = m.category || "อื่น";
           counts[c] = (counts[c] || 0) + 1;
+          if (m.recommend) {
+            recommendCount++;
+          }
         });
 
-        // 2) รายชื่อหมวดจาก collection "category" (เรียงตาม priority แล้ว)
         const masterNames = categories.map((c) => c.name);
 
-        // 3) คอลัมน์ด้านซ้ายแสดงเฉพาะหมวดที่มีอยู่ในฐานข้อมูล category + หมวด "อื่น"
         const finalCategories = [...masterNames];
         if (!finalCategories.includes("อื่น")) {
           finalCategories.push("อื่น");
         }
 
-        // 4) ถ้าหมวดที่เลือกหายไป → reset เป็น "ทุกหมวด"
-        if (
-          currentCategory !== "ทุกหมวด" &&
-          !finalCategories.includes(currentCategory)
-        ) {
+        const allowedCategories = ["ทุกหมวด", "แนะนำ", ...finalCategories];
+        if (!allowedCategories.includes(currentCategory)) {
           currentCategory = "ทุกหมวด";
         }
 
-        // 5) render ปุ่ม "ทุกหมวด"
         let html = `
           <button class="cat-btn ${currentCategory === "ทุกหมวด" ? "active" : ""}"
                   onclick="selectCategory('ทุกหมวด')">
@@ -657,7 +663,18 @@
           </button>
         `;
 
-        // 6) render หมวดทั้งหมดใน Sidebar
+        html += `
+          <button class="cat-btn recommend-cat ${currentCategory === "แนะนำ" ? "active recommend-cat" : ""}"
+                  onclick="selectCategory('แนะนำ')">
+            <span class="cat-name truncate">
+              <i class="fas fa-thumbs-up mr-1 text-orange-500"></i>เมนูแนะนำ
+            </span>
+            <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+              <span class="badge-count">${recommendCount}</span>
+            </span>
+          </button>
+        `;
+
         finalCategories.forEach((cat) => {
           const count = counts[cat] || 0;
 
@@ -695,7 +712,6 @@
 
         sidebar.innerHTML = html;
 
-        // 7) อัปเดต datalist autocomplete
         const datalist = document.getElementById("categorySuggestions");
         if (datalist) {
           datalist.innerHTML = masterNames
@@ -709,7 +725,6 @@
         renderSidebar();
         renderList();
 
-        // บนมือถือ เมื่อคลิกเลือกหมวดแล้ว ให้ซ่อน Sidebar และกลับมาแสดงรายการอาหารอัตโนมัติ
         if (window.innerWidth < 768) {
           document.getElementById("sidebarContainer").classList.add("hidden");
           document.getElementById("mainContent").classList.remove("hidden");
@@ -844,12 +859,36 @@
       window.renderList = function () {
         const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
 
-        const filtered = menus.filter((m) => {
-          const matchCat =
-            currentCategory === "ทุกหมวด" || m.category === currentCategory;
+        // 1) กรองรายการตามหมวดและคำค้นหา
+        let filtered = menus.filter((m) => {
+          let matchCat = false;
+          if (currentCategory === "ทุกหมวด") {
+            matchCat = true;
+          } else if (currentCategory === "แนะนำ") {
+            matchCat = m.recommend === true;
+          } else {
+            matchCat = m.category === currentCategory;
+          }
+
           const matchQ = !q || m.title.toLowerCase().includes(q);
           return matchCat && matchQ;
         });
+
+        // 2) ถ้าเลือก "ทุกหมวด" ให้จัดเรียงรายการอาหารตาม priority ของหมวดหมู่
+        if (currentCategory === "ทุกหมวด") {
+          // สร้าง Map เพื่อเก็บ priority ของแต่ละหมวด (ถ้าไม่มีให้ค่าเยอะๆ ไปอยู่ท้ายสุด)
+          const priorityMap = {};
+          categories.forEach((c) => {
+            priorityMap[c.name] = c.priority;
+          });
+          priorityMap["อื่น"] = 9999; // กำหนดให้หมวด "อื่น" อยู่ท้ายสุด
+
+          filtered.sort((a, b) => {
+            const pA = priorityMap[a.category] ?? 9999;
+            const pB = priorityMap[b.category] ?? 9999;
+            return pA - pB;
+          });
+        }
 
         if (filtered.length === 0) {
           listEl.innerHTML = `<p class="text-center text-gray-400 py-10 text-sm">ไม่พบเมนู</p>`;
@@ -916,7 +955,7 @@
         document.getElementById("editId").value = "";
         document.getElementById("menuName").value = "";
         document.getElementById("menuCategory").value =
-          currentCategory !== "ทุกหมวด" && currentCategory !== "อื่น" ? currentCategory : "";
+          currentCategory !== "ทุกหมวด" && currentCategory !== "แนะนำ" && currentCategory !== "อื่น" ? currentCategory : "";
         document.getElementById("menuPrice").value = "";
         document.getElementById("menuDesc").value = "";
         document.getElementById("menuRecommend").checked = false;
