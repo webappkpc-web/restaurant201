@@ -1,3 +1,6 @@
 index            หน้าหลักครัว, พิมพ์บาร์โค้ตโต๊ะ
 menumgr          จัดการเมนู
 restaurant203    รายงานยอดขาย
+
+ไม่ใช้งาน
+restaurant202  -> menumgr
