@@ -298,11 +298,8 @@
           <button id="menuPrintQr" class="option-item-btn" type="button">
             <span>▦</span> พิมพ์ QR Code โต๊ะ
           </button>
-          <button id="menuManageMenu" class="option-item-btn" type="button"  onclick="window.open('menumgr.html', '_blank')">
-            <span>🍽️</span> จัดการเมนูอาหาร
-          </button>
-          <button id="menuMagageShop" class="option-item-btn" type="button"  onclick="window.open('restaurant203.html', '_blank')">
-            <span>🧾</span> จัดการร้าน
+          <button id="menuManageShop" class="option-item-btn" type="button"  onclick="window.open('menumgr.html', '_blank')">
+            <span>⚙️</span> จัดการเมนูอาหาร
           </button>
         </div>
         <div class="modal-actions">
@@ -630,7 +627,6 @@
       const openOptionsModalBtn = document.getElementById("openOptionsModal");
       const closeOptionsModalBtn = document.getElementById("closeOptionsModal");
       const menuPrintQr = document.getElementById("menuPrintQr");
-      const menuManageMenu = document.getElementById("menuManageMenu");
       const menuManageShop = document.getElementById("menuManageShop");
 
       const tableQrModal = document.getElementById("tableQrModal");
@@ -789,7 +785,7 @@
         const timeStr = formatTimestamp(item.createdAt);
         const isBill = type === "bill";
         const icon = isBill ? "💵" : "🔔";
-        const label = isBill ? "เรียกเช็คบิล" : "เรียกพนักงาน";
+        const label = isBill ? "เรียกสรุปยอด" : "เรียกพนักงาน";
         const price = item.totalPrice
           ? Number(item.totalPrice).toLocaleString()
           : "-";
