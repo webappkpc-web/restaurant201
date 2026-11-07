@@ -4,7 +4,1085 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>จัดการเมนู - ครัวจันทร์เพ็ญ</title>
+    <script src="https://cdn.tailwindcss.com"></script><!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>จัดการเมนู - ครัวจันทร์เพ็ญ</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      body {
+        background-color: #f3f4f6;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.25s ease;
+      }
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-container {
+        background: white;
+        border-radius: 20px;
+        width: 92%;
+        max-width: 420px;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: scale(0.92);
+        transition: transform 0.25s ease;
+      }
+      .modal-overlay.active .modal-container {
+        transform: scale(1);
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1f2937;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 3000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 90%;
+        text-align: center;
+      }
+      .toast.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* ===== Sidebar หมวดหมู่ ===== */
+      .sidebar {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f3f4f6;
+        overflow: hidden;
+      }
+      .cat-btn {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+        border-left: 4px solid transparent;
+        transition: all 0.15s ease;
+        cursor: pointer;
+        text-align: left;
+        gap: 8px;
+      }
+      .cat-btn:hover {
+        background: #f9fafb;
+      }
+      .cat-btn.active {
+        background: #eff6ff;
+        color: #2563eb;
+        font-weight: 700;
+        border-left-color: #2563eb;
+      }
+      .cat-btn.active.recommend-cat {
+        background: #fff7ed;
+        color: #c2410c;
+        border-left-color: #f97316;
+      }
+      .cat-btn .badge-count {
+        font-size: 11px;
+        background: #e5e7eb;
+        color: #4b5563;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .cat-btn.active .badge-count {
+        background: #dbeafe;
+        color: #2563eb;
+      }
+      .cat-btn.active.recommend-cat .badge-count {
+        background: #ffedd5;
+        color: #c2410c;
+      }
+      .cat-btn .cat-name {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        flex: 1;
+      }
+
+      /* ป้าย priority */
+      .cat-btn .priority-badge {
+        font-size: 10px;
+        background: #fef3c7;
+        color: #b45309;
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-weight: 700;
+        flex-shrink: 0;
+        font-family: ui-monospace, monospace;
+      }
+      .cat-btn.active .priority-badge {
+        background: #fde68a;
+        color: #92400e;
+      }
+
+      /* ปุ่มดินสอแก้ priority */
+      .cat-btn .edit-priority-btn {
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        background: #fef08a;
+        color: #a16207;
+        font-size: 10px;
+        font-weight: bold;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+      }
+      .cat-btn .edit-priority-btn:hover {
+        background: #fde047;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <h1 class="font-bold text-lg flex items-center gap-2">
+          <i class="fas fa-utensils"></i> จัดการเมนูอาหาร
+        </h1>
+        <button
+          onclick="openAddModal()"
+          class="bg-white text-blue-600 font-bold px-3 py-2 rounded-lg text-sm shadow active:scale-95 transition flex items-center gap-1"
+        >
+          <i class="fas fa-plus"></i> เพิ่มเมนู
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-2">
+      <!-- ปุ่ม Toggle สำหรับมือถือ (< 768px) -->
+      <button
+        onclick="toggleMobileSidebar()"
+        id="mobileSidebarToggle"
+        class="md:hidden bg-white border border-gray-300 text-gray-700 px-3.5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm active:scale-95 flex-shrink-0"
+      >
+        <i class="fas fa-bars text-blue-600"></i>
+        <span>หมวดหมู่</span>
+      </button>
+
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="ค้นหาชื่อเมนู..."
+        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"
+        oninput="renderList()"
+      />
+      <button
+        onclick="loadMenus()"
+        class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm active:scale-95 flex-shrink-0"
+        title="โหลดใหม่"
+      >
+        <i class="fas fa-rotate"></i>
+      </button>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="max-w-5xl mx-auto px-4 pb-24">
+      <div class="flex flex-col md:flex-row gap-4">
+        <!-- Sidebar หมวดหมู่ -->
+        <aside id="sidebarContainer" class="hidden md:block w-full md:w-1/2 md:basis-1/2 min-w-0">
+          <div class="md:sticky md:top-24 space-y-2">
+            <div id="categorySidebar" class="sidebar">
+              <div class="text-center py-6 text-gray-400 text-sm">
+                <i class="fas fa-spinner fa-spin"></i> กำลังโหลดหมวด...
+              </div>
+            </div>
+            <!-- ปุ่มเพิ่มหมวด -->
+            <button
+              onclick="openAddCategoryModal()"
+              class="w-full bg-white hover:bg-gray-50 text-blue-600 border border-blue-200 font-bold py-2.5 px-4 rounded-xl text-sm shadow-sm transition active:scale-95 flex items-center justify-center gap-2"
+            >
+              <i class="fas fa-plus-circle"></i> เพิ่มหมวด
+            </button>
+          </div>
+        </aside>
+
+        <!-- รายการอาหาร -->
+        <main id="mainContent" class="w-full md:w-1/2 md:basis-1/2 min-w-0">
+          <div id="menuList" class="space-y-3">
+            <div class="text-center py-20 text-gray-500">
+              <div
+                class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
+              ></div>
+              <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Modal เพิ่ม/แก้ไขเมนู -->
+    <div id="formModal" class="modal-overlay" onclick="closeFormOnOverlay(event)">
+      <div class="modal-container" onclick="event.stopPropagation()">
+        <div class="p-5">
+          <div class="flex justify-between items-center mb-4">
+            <h2 id="formTitle" class="font-bold text-lg">เพิ่มเมนูใหม่</h2>
+            <button
+              onclick="closeFormModal()"
+              class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <input type="hidden" id="editId" />
+
+<!-- รูป -->
+          <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">รูปภาพ</label>
+            <div class="flex flex-col gap-2">
+              <img
+                id="previewImg"
+                src="https://via.placeholder.com/400x200?text=No+Image"
+                class="w-full h-48 rounded-xl object-cover border bg-gray-50 shadow-sm"
+                onerror="this.src='https://via.placeholder.com/400x200?text=No+Image'"
+              />
+              <label
+                class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 px-4 rounded-xl text-sm cursor-pointer text-center transition active:scale-95 flex items-center justify-center gap-2"
+              >
+                <i class="fas fa-upload"></i> เลือกรูปภาพ
+                <input
+                  type="file"
+                  id="imageInput"
+                  accept="image/*"
+                  class="hidden"
+                  onchange="previewImage(event)"
+                />
+              </label>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">ไม่บังคับ (ถ้าไม่เปลี่ยนรูปเดิมจะคงไว้)</p>
+          </div>
+
+          <!-- ชื่อ -->
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อเมนู *</label>
+            <input
+              id="menuName"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="เช่น ผัดไทยกุ้งสด"
+            />
+          </div>
+
+          <!-- หมวด (เปลี่ยนเป็น select ดึงข้อมูลจากซ้าย) -->
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">หมวดหมู่ *</label>
+            <select
+              id="menuCategory"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"
+            >
+              <!-- ตัวเลือกจะถูกสร้างอัตโนมัติผ่าน JS -->
+            </select>
+          </div>
+
+          <!-- ราคา -->
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">ราคา (บาท) *</label>
+            <input
+              id="menuPrice"
+              type="number"
+              min="0"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="0"
+            />
+          </div>
+
+          <!-- รายละเอียด -->
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">รายละเอียด</label>
+            <textarea
+              id="menuDesc"
+              rows="3"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="คำอธิบายเมนู (ถ้ามี)"
+            ></textarea>
+          </div>
+
+          <!-- เมนูแนะนำ -->
+          <div class="mb-4 flex items-center gap-2">
+            <input
+              id="menuRecommend"
+              type="checkbox"
+              class="w-4 h-4 accent-orange-500"
+            />
+            <label for="menuRecommend" class="text-sm font-bold text-gray-700 cursor-pointer">
+              👍 ตั้งเป็นเมนูแนะนำ
+            </label>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              onclick="closeFormModal()"
+              class="flex-1 bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg active:scale-95"
+            >
+              ยกเลิก
+            </button>
+            <button
+              id="saveBtn"
+              onclick="saveMenu()"
+              class="flex-[2] bg-blue-600 text-white font-bold py-2.5 rounded-lg shadow active:scale-95 disabled:opacity-60"
+            >
+              <span id="saveBtnText">บันทึก</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal เพิ่มหมวดใหม่ -->
+    <div id="addCategoryModal" class="modal-overlay" onclick="closeAddCategoryOnOverlay(event)">
+      <div class="modal-container" onclick="event.stopPropagation()" style="max-width: 360px;">
+        <div class="p-5">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="font-bold text-lg flex items-center gap-2">
+              <i class="fas fa-folder-plus text-blue-600"></i> เพิ่มหมวดหมู่ใหม่
+            </h2>
+            <button
+              onclick="closeAddCategoryModal()"
+              class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div class="mb-3">
+            <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อหมวดหมู่ *</label>
+            <input
+              id="newCategoryName"
+              type="text"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="เช่น ของหวาน, เครื่องดื่ม"
+            />
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">
+              ลำดับ Priority (เลขน้อย = แสดงก่อน) *
+            </label>
+            <input
+              id="newCategoryPriority"
+              type="number"
+              min="1"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-center text-lg font-bold"
+              placeholder="1"
+              value="1"
+            />
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              onclick="closeAddCategoryModal()"
+              class="flex-1 bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg active:scale-95"
+            >
+              ยกเลิก
+            </button>
+            <button
+              id="addCatSaveBtn"
+              onclick="saveNewCategory()"
+              class="flex-[2] bg-blue-600 text-white font-bold py-2.5 rounded-lg shadow active:scale-95 disabled:opacity-60"
+            >
+              <span id="addCatSaveBtnText">บันทึกหมวด</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal แก้ไข priority -->
+    <div id="priorityModal" class="modal-overlay" onclick="closePriorityOnOverlay(event)">
+      <div class="modal-container" onclick="event.stopPropagation()" style="max-width: 340px;">
+        <div class="p-5">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="font-bold text-lg flex items-center gap-2">
+              <i class="fas fa-sort-numeric-up text-blue-600"></i> แก้ไขลำดับหมวด
+            </h2>
+            <button
+              onclick="closePriorityModal()"
+              class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div class="mb-3 bg-gray-50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 mb-1">หมวดอาหาร</div>
+            <div id="priorityCategoryName" class="font-bold text-gray-800"></div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-bold text-gray-700 mb-1">
+              Priority (เลขน้อย = แสดงก่อน)
+            </label>
+            <input
+              id="priorityInput"
+              type="number"
+              min="1"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-center text-lg font-bold"
+              placeholder="1"
+            />
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              onclick="closePriorityModal()"
+              class="flex-1 bg-gray-200 text-gray-700 font-bold py-2.5 rounded-lg active:scale-95"
+            >
+              ยกเลิก
+            </button>
+            <button
+              id="prioritySaveBtn"
+              onclick="savePriority()"
+              class="flex-[2] bg-blue-600 text-white font-bold py-2.5 rounded-lg shadow active:scale-95 disabled:opacity-60"
+            >
+              <span id="prioritySaveBtnText">บันทึก</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">
+      <i class="fas fa-info-circle"></i>
+      <span id="toastText">ข้อความ</span>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDocs,
+        addDoc,
+        updateDoc,
+        doc,
+        deleteDoc,
+        query,
+        orderBy,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+      import {
+        getStorage,
+        ref as storageRef,
+        uploadBytes,
+        getDownloadURL,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAhJaUZhl14mlJ7I_FVMu2fuMg6qAKspO4",
+        authDomain: "restaurant-101a.firebaseapp.com",
+        projectId: "restaurant-101a",
+        storageBucket: "restaurant-101a.firebasestorage.app",
+        messagingSenderId: "35898180691",
+        appId: "1:35898180691:web:21e39b2796018d48e432a6",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+
+      // ---------- State ----------
+      let menus = [];
+      let categories = []; 
+      let currentEditId = null;
+      let pendingFile = null;
+      let currentImageUrl = "";
+      let currentCategory = "ทุกหมวด";
+      let currentRecommend = false;
+      let currentPriorityCategoryId = null;
+      let currentPriorityCategoryName = "";
+
+      const listEl = document.getElementById("menuList");
+
+      // ---------- Toggle Mobile Sidebar ----------
+      window.toggleMobileSidebar = function () {
+        const sidebar = document.getElementById("sidebarContainer");
+        const mainContent = document.getElementById("mainContent");
+        
+        if (sidebar.classList.contains("hidden")) {
+          sidebar.classList.remove("hidden");
+          mainContent.classList.add("hidden");
+        } else {
+          sidebar.classList.add("hidden");
+          mainContent.classList.remove("hidden");
+        }
+      };
+
+      // ---------- Load Categories ----------
+      async function loadCategories() {
+        try {
+          const q = query(collection(db, "category"), orderBy("priority", "asc"));
+          const snap = await getDocs(q);
+          categories = snap.docs.map((d) => {
+            const v = d.data();
+            return {
+              id: d.id,
+              name: v.category_name || "",
+              priority: Number(v.priority) || 999,
+            };
+          });
+          categories = categories.filter((c) => c.name && c.name.trim() !== "");
+        } catch (err) {
+          console.error("loadCategories error:", err);
+          categories = [];
+          showToast("⚠️ โหลดหมวดไม่สำเร็จ", "fa-triangle-exclamation", "#f59e0b");
+        }
+      }
+
+      // ---------- Load Menus ----------
+      window.loadMenus = async function () {
+        listEl.innerHTML = `
+          <div class="text-center py-20 text-gray-500">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-3 text-sm">กำลังโหลดข้อมูล...</p>
+          </div>`;
+        try {
+          const [snapMenus] = await Promise.all([
+            getDocs(collection(db, "devices")),
+            loadCategories(),
+          ]);
+
+          const validCategoryNames = categories.map((c) => c.name);
+
+          menus = snapMenus.docs.map((d) => {
+            const v = d.data();
+            const rawCat = v.menu_category || v.device_section || "";
+            
+            const matchedCategory = (rawCat && validCategoryNames.includes(rawCat))
+              ? rawCat
+              : "อื่นๆ";
+
+            return {
+              id: d.id,
+              title: v.menu_name || v.device_name || "",
+              category: matchedCategory,
+              rawCategory: rawCat,
+              price: Number(v.base_price ?? v.price ?? 0),
+              desc: v.description || v.desc || "",
+              img: v.url || v.image || "",
+              recommend: v.recommend === true,
+            };
+          });
+
+          renderSidebar();
+          renderList();
+        } catch (err) {
+          console.error(err);
+          listEl.innerHTML = `<p class="text-center text-red-500 py-10 text-sm">โหลดไม่สำเร็จ: ${err.message}</p>`;
+        }
+      };
+
+      // ---------- Sidebar ----------
+      window.renderSidebar = function () {
+        const sidebar = document.getElementById("categorySidebar");
+
+        const counts = {};
+        let recommendCount = 0;
+        
+        menus.forEach((m) => {
+          const c = m.category || "อื่นๆ";
+          counts[c] = (counts[c] || 0) + 1;
+          if (m.recommend) {
+            recommendCount++;
+          }
+        });
+
+        const masterNames = categories.map((c) => c.name);
+        const finalCategories = [...masterNames];
+        if (!finalCategories.includes("อื่นๆ")) {
+          finalCategories.push("อื่นๆ");
+        }
+
+        const allowedCategories = ["ทุกหมวด", "แนะนำ", ...finalCategories];
+        if (!allowedCategories.includes(currentCategory)) {
+          currentCategory = "ทุกหมวด";
+        }
+
+        // อัปเดตตัวเลือกใน Dropdown ของฟอร์มเพิ่ม/แก้ไขเมนู
+        const menuCategorySelect = document.getElementById("menuCategory");
+        if (menuCategorySelect) {
+          let optionsHtml = '<option value="">-- เลือกหมวดหมู่ --</option>';
+          masterNames.forEach((cat) => {
+            optionsHtml += `<option value="${escapeAttr(cat)}">${escapeHtml(cat)}</option>`;
+          });
+          if (!masterNames.includes("อื่นๆ")) {
+            optionsHtml += `<option value="อื่นๆ">อื่นๆ</option>`;
+          }
+          menuCategorySelect.innerHTML = optionsHtml;
+        }
+
+        // Render ปุ่ม "ทุกหมวด"
+        let html = `
+          <button class="cat-btn ${currentCategory === "ทุกหมวด" ? "active" : ""}"
+                  onclick="selectCategory('ทุกหมวด')">
+            <span class="cat-name truncate">
+              <i class="fas fa-list mr-1"></i>ทุกหมวด
+            </span>
+            <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+              <span class="badge-count">${menus.length}</span>
+            </span>
+          </button>
+        `;
+
+        // Render ปุ่ม "แนะนำ"
+        html += `
+          <button class="cat-btn recommend-cat ${currentCategory === "แนะนำ" ? "active recommend-cat" : ""}"
+                  onclick="selectCategory('แนะนำ')">
+            <span class="cat-name truncate">
+              <i class="fas fa-thumbs-up mr-1 text-orange-500"></i>เมนูแนะนำ
+            </span>
+            <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+              <span class="badge-count">${recommendCount}</span>
+            </span>
+          </button>
+        `;
+
+        // Render หมวดปกติ (เรียงตาม Priority)
+        finalCategories.forEach((cat) => {
+          const count = counts[cat] || 0;
+          const catObj = categories.find((c) => c.name === cat);
+          const priorityText = catObj
+            ? `<span class="priority-badge" title="priority = ${catObj.priority}">P${catObj.priority}</span>`
+            : (cat === "อื่นๆ" ? `<span class="priority-badge">P999</span>` : "");
+          
+          const editBtn = catObj
+            ? `<span
+                 class="edit-priority-btn"
+                 role="button"
+                 tabindex="0"
+                 onclick="event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority})"
+                 title="แก้ไข priority">
+                 <i class="fas fa-pen"></i>
+               </span>`
+            : "";
+
+          html += `
+            <button class="cat-btn ${currentCategory === cat ? "active" : ""}"
+                    onclick="selectCategory('${escapeAttr(cat)}')">
+              <span class="cat-name truncate">
+                <span class="truncate">${escapeHtml(cat)}</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
+                ${priorityText}
+                ${editBtn}
+                <span class="badge-count">${count}</span>
+              </span>
+            </button>
+          `;
+        });
+
+        sidebar.innerHTML = html;
+      };
+
+      window.selectCategory = function (cat) {
+        currentCategory = cat;
+        renderSidebar();
+        renderList();
+
+        if (window.innerWidth < 768) {
+          document.getElementById("sidebarContainer").classList.add("hidden");
+          document.getElementById("mainContent").classList.remove("hidden");
+        }
+      };
+
+      // ---------- Add Category Modal ----------
+      window.openAddCategoryModal = function () {
+        document.getElementById("newCategoryName").value = "";
+        document.getElementById("newCategoryPriority").value = (categories.length + 1) * 1;
+        document.getElementById("addCategoryModal").classList.add("active");
+        setTimeout(() => document.getElementById("newCategoryName").focus(), 100);
+      };
+
+      window.closeAddCategoryModal = function () {
+        document.getElementById("addCategoryModal").classList.remove("active");
+      };
+
+      window.closeAddCategoryOnOverlay = function (e) {
+        if (e.target === e.currentTarget) closeAddCategoryModal();
+      };
+
+      window.saveNewCategory = async function () {
+        const name = document.getElementById("newCategoryName").value.trim();
+        const priorityVal = document.getElementById("newCategoryPriority").value;
+        const priority = Number(priorityVal);
+
+        if (!name) {
+          return showToast("กรุณากรอกชื่อหมวดหมู่", "fa-exclamation-circle", "#dc2626");
+        }
+        if (isNaN(priority) || priority < 1) {
+          return showToast("กรุณากรอกลำดับ (Priority) เป็นตัวเลข ≥ 1", "fa-exclamation-circle", "#dc2626");
+        }
+
+        const btn = document.getElementById("addCatSaveBtn");
+        const btnText = document.getElementById("addCatSaveBtnText");
+        btn.disabled = true;
+        btnText.innerText = "กำลังบันทึก...";
+
+        try {
+          await addDoc(collection(db, "category"), {
+            category_name: name,
+            priority: priority,
+            createdAt: new Date(),
+          });
+
+          showToast(`✅ เพิ่มหมวด "${name}" เรียบร้อย`, "fa-check", "#16a34a");
+          closeAddCategoryModal();
+          loadMenus();
+        } catch (err) {
+          console.error(err);
+          showToast("❌ เพิ่มหมวดไม่สำเร็จ: " + err.message, "fa-times", "#dc2626");
+        } finally {
+          btn.disabled = false;
+          btnText.innerText = "บันทึกหมวด";
+        }
+      };
+
+      // ---------- Priority Modal ----------
+      window.openPriorityModal = function (id, name, priority) {
+        currentPriorityCategoryId = id;
+        currentPriorityCategoryName = name;
+        document.getElementById("priorityCategoryName").innerText = name;
+        document.getElementById("priorityInput").value = priority;
+        document.getElementById("priorityModal").classList.add("active");
+        setTimeout(() => {
+          const inp = document.getElementById("priorityInput");
+          inp.focus();
+          inp.select();
+        }, 100);
+      };
+
+      window.closePriorityModal = function () {
+        document.getElementById("priorityModal").classList.remove("active");
+        currentPriorityCategoryId = null;
+        currentPriorityCategoryName = "";
+      };
+
+      window.closePriorityOnOverlay = function (e) {
+        if (e.target === e.currentTarget) closePriorityModal();
+      };
+
+      window.savePriority = async function () {
+        const val = document.getElementById("priorityInput").value;
+        const priority = Number(val);
+
+        if (!currentPriorityCategoryId) return;
+        if (isNaN(priority) || priority < 1) {
+          return showToast("กรุณากรอก priority เป็นตัวเลข ≥ 1", "fa-exclamation-circle", "#dc2626");
+        }
+
+        const btn = document.getElementById("prioritySaveBtn");
+        const btnText = document.getElementById("prioritySaveBtnText");
+        btn.disabled = true;
+        btnText.innerText = "กำลังบันทึก...";
+
+        const savedName = currentPriorityCategoryName;
+
+        try {
+          await updateDoc(doc(db, "category", currentPriorityCategoryId), {
+            priority: priority,
+          });
+
+          const idx = categories.findIndex((c) => c.id === currentPriorityCategoryId);
+          if (idx !== -1) categories[idx].priority = priority;
+
+          categories.sort((a, b) => a.priority - b.priority);
+
+          closePriorityModal();
+          renderSidebar();
+          showToast(`✅ อัปเดต priority ของ "${savedName}" เป็น ${priority}`, "fa-check", "#16a34a");
+        } catch (err) {
+          console.error(err);
+          showToast("❌ บันทึกไม่สำเร็จ: " + err.message, "fa-times", "#dc2626");
+        } finally {
+          btn.disabled = false;
+          btnText.innerText = "บันทึก";
+        }
+      };
+
+      // ---------- Render List (เรียง แนะนำ -> Priority) ----------
+      window.renderList = function () {
+        const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+
+        let filtered = menus.filter((m) => {
+          let matchCat = false;
+          if (currentCategory === "ทุกหมวด") {
+            matchCat = true;
+          } else if (currentCategory === "แนะนำ") {
+            matchCat = m.recommend === true;
+          } else {
+            matchCat = m.category === currentCategory;
+          }
+
+          const matchQ = !q || m.title.toLowerCase().includes(q);
+          return matchCat && matchQ;
+        });
+
+        // จัดเรียงข้อมูล: เมนูแนะนำขึ้นก่อน เสมอ ตามด้วย Priority ของหมวดหมู่
+        const priorityMap = {};
+        categories.forEach((c) => {
+          priorityMap[c.name] = c.priority;
+        });
+        priorityMap["อื่นๆ"] = 9999;
+
+        filtered.sort((a, b) => {
+          // 1. นำเมนูแนะนำขึ้นก่อน
+          if (a.recommend && !b.recommend) return -1;
+          if (!a.recommend && b.recommend) return 1;
+
+          // 2. เรียงตาม Priority หมวดหมู่
+          const pA = priorityMap[a.category] ?? 9999;
+          const pB = priorityMap[b.category] ?? 9999;
+          return pA - pB;
+        });
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = `<p class="text-center text-gray-400 py-10 text-sm">ไม่พบเมนู</p>`;
+          return;
+        }
+
+        listEl.innerHTML = filtered
+          .map(
+            (m) => `
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex gap-3 items-center">
+            <div class="relative flex-shrink-0">
+              <img src="${m.img || "https://via.placeholder.com/80?text=No+Image"}"
+                   class="w-20 h-20 rounded-lg object-cover bg-gray-100"
+                   onerror="this.src='https://via.placeholder.com/80?text=No+Image'"/>
+              ${
+                m.recommend
+                  ? `<div class="absolute top-1 left-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">👍 แนะนำ</div>`
+                  : ""
+              }
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-gray-800 text-sm truncate">${escapeHtml(m.title) || "-"}</div>
+              <div class="text-xs text-gray-500 truncate">
+                <i class="fas fa-tag text-gray-400 mr-1"></i>${escapeHtml(m.category)}
+              </div>
+              <div class="text-blue-600 font-bold text-sm mt-1">${m.price.toLocaleString()} บาท</div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <button onclick='openEditModal("${m.id}")'
+                class="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95">
+                <i class="fas fa-pen"></i> แก้ไข
+              </button>
+              <button onclick='deleteMenu("${m.id}","${escapeAttr(m.title)}")'
+                class="bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95">
+                <i class="fas fa-trash"></i> ลบ
+              </button>
+            </div>
+          </div>`
+          )
+          .join("");
+      };
+
+      // ---------- Helpers ----------
+      function escapeHtml(s) {
+        return String(s || "").replace(/[&<>"']/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+        );
+      }
+      function escapeAttr(s) {
+        return String(s || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+      }
+
+      // ---------- Menu Modal ----------
+      window.openAddModal = function () {
+        currentEditId = null;
+        pendingFile = null;
+        currentImageUrl = "";
+        currentRecommend = false;
+        document.getElementById("formTitle").innerText = "เพิ่มเมนูใหม่";
+        document.getElementById("editId").value = "";
+        document.getElementById("menuName").value = "";
+        
+        const catSelect = document.getElementById("menuCategory");
+        if (currentCategory !== "ทุกหมวด" && currentCategory !== "แนะนำ" && currentCategory !== "อื่นๆ") {
+          catSelect.value = currentCategory;
+        } else {
+          catSelect.selectedIndex = 0;
+        }
+
+        document.getElementById("menuPrice").value = "";
+        document.getElementById("menuDesc").value = "";
+        document.getElementById("menuRecommend").checked = false;
+        document.getElementById("imageInput").value = "";
+        document.getElementById("previewImg").src = "https://via.placeholder.com/100?text=No+Image";
+        document.getElementById("formModal").classList.add("active");
+      };
+
+      window.openEditModal = function (id) {
+        const m = menus.find((x) => x.id === id);
+        if (!m) return;
+        currentEditId = id;
+        pendingFile = null;
+        currentImageUrl = m.img || "";
+        currentRecommend = m.recommend === true;
+        document.getElementById("formTitle").innerText = "แก้ไขเมนู";
+        document.getElementById("editId").value = id;
+        document.getElementById("menuName").value = m.title || "";
+        document.getElementById("menuCategory").value = m.rawCategory || m.category || "อื่นๆ";
+        document.getElementById("menuPrice").value = m.price || 0;
+        document.getElementById("menuDesc").value = m.desc || "";
+        document.getElementById("menuRecommend").checked = currentRecommend;
+        document.getElementById("imageInput").value = "";
+        document.getElementById("previewImg").src = m.img || "https://via.placeholder.com/100?text=No+Image";
+        document.getElementById("formModal").classList.add("active");
+      };
+
+      window.closeFormModal = function () {
+        document.getElementById("formModal").classList.remove("active");
+      };
+      window.closeFormOnOverlay = function (e) {
+        if (e.target === e.currentTarget) closeFormModal();
+      };
+
+      window.previewImage = function (e) {
+        const f = e.target.files[0];
+        if (!f) return;
+        pendingFile = f;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          document.getElementById("previewImg").src = ev.target.result;
+        };
+        reader.readAsDataURL(f);
+      };
+
+      // ---------- Save Menu ----------
+      window.saveMenu = async function () {
+        const name = document.getElementById("menuName").value.trim();
+        const category = document.getElementById("menuCategory").value.trim() || "อื่นๆ";
+        const priceRaw = document.getElementById("menuPrice").value;
+        const desc = document.getElementById("menuDesc").value.trim();
+        const recommend = document.getElementById("menuRecommend").checked;
+        const price = Number(priceRaw);
+
+        if (!name)
+          return showToast("กรุณากรอกชื่อเมนู", "fa-exclamation-circle", "#dc2626");
+        if (!category)
+          return showToast("กรุณาเลือกหมวดหมู่", "fa-exclamation-circle", "#dc2626");
+        if (isNaN(price) || price < 0)
+          return showToast("กรุณากรอกราคาให้ถูกต้อง", "fa-exclamation-circle", "#dc2626");
+
+        const btn = document.getElementById("saveBtn");
+        const btnText = document.getElementById("saveBtnText");
+        btn.disabled = true;
+        btnText.innerText = "กำลังบันทึก...";
+
+        try {
+          let imgUrl = currentImageUrl;
+          if (pendingFile) {
+            const path = `menu_images/${Date.now()}_${pendingFile.name}`;
+            const sRef = storageRef(storage, path);
+            await uploadBytes(sRef, pendingFile);
+            imgUrl = await getDownloadURL(sRef);
+          }
+
+          if (currentEditId) {
+            await updateDoc(doc(db, "devices", currentEditId), {
+              menu_name: name,
+              menu_category: category,
+              base_price: price,
+              description: desc,
+              recommend: recommend,
+              ...(imgUrl ? { url: imgUrl } : {}),
+            });
+            showToast("✅ แก้ไขเมนูสำเร็จ", "fa-check", "#16a34a");
+          } else {
+            await addDoc(collection(db, "devices"), {
+              menu_name: name,
+              menu_category: category,
+              base_price: price,
+              description: desc,
+              recommend: recommend,
+              url: imgUrl || "",
+              createdAt: new Date(),
+            });
+            showToast("✅ เพิ่มเมนูสำเร็จ", "fa-check", "#16a34a");
+          }
+
+          closeFormModal();
+          loadMenus();
+        } catch (err) {
+          console.error(err);
+          showToast("❌ บันทึกไม่สำเร็จ: " + err.message, "fa-times", "#dc2626");
+        } finally {
+          btn.disabled = false;
+          btnText.innerText = "บันทึก";
+        }
+      };
+
+      // ---------- Delete Menu ----------
+      window.deleteMenu = async function (id, name) {
+        if (!confirm(`ต้องการลบเมนู "${name}" ใช่หรือไม่?`)) return;
+        try {
+          await deleteDoc(doc(db, "devices", id));
+          showToast("🗑️ ลบเมนูสำเร็จ", "fa-check", "#16a34a");
+          loadMenus();
+        } catch (err) {
+          console.error(err);
+          showToast("❌ ลบไม่สำเร็จ: " + err.message, "fa-times", "#dc2626");
+        }
+      };
+
+      // ---------- Toast ----------
+      let toastTimer;
+      function showToast(msg, icon = "fa-info-circle", color = "#1f2937") {
+        const t = document.getElementById("toast");
+        document.getElementById("toastText").innerText = msg;
+        t.querySelector("i").className = `fas ${icon}`;
+        t.style.background = color;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
+      }
+
+      // Initial Load
+      loadMenus();
+    </script>
+  </body>
+</html>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
