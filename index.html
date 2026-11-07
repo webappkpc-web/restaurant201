@@ -605,8 +605,9 @@
             order_info: `🧾 บิลสรุปยอด | โต๊ะ ${bill.table}\n${now}`,
             items: items,
             total: total,
-            promptpay_id: PROMPTPAY_ID,
-            promptpay_name: PROMPTPAY_NAME,
+            // --- ปิดการพิมพ์ QR Code ชั่วคราว ---
+            // promptpay_id: PROMPTPAY_ID,
+            // promptpay_name: PROMPTPAY_NAME,
             footer: [
               bill.sessionId ? `👤 ${bill.sessionId}` : "",
               `ขอบคุณที่ใช้บริการ 🙏`,
