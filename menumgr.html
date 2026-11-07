@@ -193,7 +193,7 @@
         class="md:hidden bg-white border border-gray-300 text-gray-700 px-3.5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm active:scale-95 flex-shrink-0"
       >
         <i class="fas fa-bars text-blue-600"></i>
-        <span id="toggleButtonText">หมวดหมู่</span>
+        <span>หมวดหมู่</span>
       </button>
 
       <input
@@ -300,20 +300,15 @@
             />
           </div>
 
-          <!-- หมวด -->
+          <!-- หมวด (เปลี่ยนเป็น select ดึงข้อมูลจากซ้าย) -->
           <div class="mb-3">
-            <label class="block text-sm font-bold text-gray-700 mb-1">หมวดหมู่</label>
-            <input
+            <label class="block text-sm font-bold text-gray-700 mb-1">หมวดหมู่ *</label>
+            <select
               id="menuCategory"
-              type="text"
-              list="categorySuggestions"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-              placeholder="เช่น อาหารจานเดียว"
-            />
-            <datalist id="categorySuggestions"></datalist>
-            <p class="text-xs text-gray-400 mt-1">
-              หมวดควรมีอยู่ใน collection <code>category</code> เพื่อไม่ให้ตกไปอยู่ในหมวด "อื่น"
-            </p>
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white"
+            >
+              <!-- ตัวเลือกจะถูกสร้างอัตโนมัติผ่าน JS -->
+            </select>
           </div>
 
           <!-- ราคา -->
@@ -386,7 +381,6 @@
             </button>
           </div>
 
-          <!-- ชื่อหมวด -->
           <div class="mb-3">
             <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อหมวดหมู่ *</label>
             <input
@@ -397,7 +391,6 @@
             />
           </div>
 
-          <!-- ลำดับ (Priority) -->
           <div class="mb-4">
             <label class="block text-sm font-bold text-gray-700 mb-1">
               ลำดับ Priority (เลขน้อย = แสดงก่อน) *
@@ -410,9 +403,6 @@
               placeholder="1"
               value="1"
             />
-            <p class="text-xs text-gray-400 mt-1">
-              เช่น 1 = หมวดแรกสุด, 2 = หมวดถัดไป
-            </p>
           </div>
 
           <div class="flex gap-2">
@@ -466,9 +456,6 @@
               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-center text-lg font-bold"
               placeholder="1"
             />
-            <p class="text-xs text-gray-400 mt-1">
-              เช่น 1 = ซ้ายสุด, 2 = ถัดมา, ...
-            </p>
           </div>
 
           <div class="flex gap-2">
@@ -573,11 +560,7 @@
         } catch (err) {
           console.error("loadCategories error:", err);
           categories = [];
-          showToast(
-            "⚠️ โหลดหมวดไม่สำเร็จ",
-            "fa-triangle-exclamation",
-            "#f59e0b"
-          );
+          showToast("⚠️ โหลดหมวดไม่สำเร็จ", "fa-triangle-exclamation", "#f59e0b");
         }
       }
 
@@ -598,11 +581,11 @@
 
           menus = snapMenus.docs.map((d) => {
             const v = d.data();
-            const rawCat = v.menu_category || v.device_section || "อื่น";
+            const rawCat = v.menu_category || v.device_section || "";
             
-            const matchedCategory = validCategoryNames.includes(rawCat)
+            const matchedCategory = (rawCat && validCategoryNames.includes(rawCat))
               ? rawCat
-              : "อื่น";
+              : "อื่นๆ";
 
             return {
               id: d.id,
@@ -632,7 +615,7 @@
         let recommendCount = 0;
         
         menus.forEach((m) => {
-          const c = m.category || "อื่น";
+          const c = m.category || "อื่นๆ";
           counts[c] = (counts[c] || 0) + 1;
           if (m.recommend) {
             recommendCount++;
@@ -640,10 +623,9 @@
         });
 
         const masterNames = categories.map((c) => c.name);
-
         const finalCategories = [...masterNames];
-        if (!finalCategories.includes("อื่น")) {
-          finalCategories.push("อื่น");
+        if (!finalCategories.includes("อื่นๆ")) {
+          finalCategories.push("อื่นๆ");
         }
 
         const allowedCategories = ["ทุกหมวด", "แนะนำ", ...finalCategories];
@@ -651,6 +633,20 @@
           currentCategory = "ทุกหมวด";
         }
 
+        // อัปเดตตัวเลือกใน Dropdown ของฟอร์มเพิ่ม/แก้ไขเมนู
+        const menuCategorySelect = document.getElementById("menuCategory");
+        if (menuCategorySelect) {
+          let optionsHtml = '<option value="">-- เลือกหมวดหมู่ --</option>';
+          masterNames.forEach((cat) => {
+            optionsHtml += `<option value="${escapeAttr(cat)}">${escapeHtml(cat)}</option>`;
+          });
+          if (!masterNames.includes("อื่นๆ")) {
+            optionsHtml += `<option value="อื่นๆ">อื่นๆ</option>`;
+          }
+          menuCategorySelect.innerHTML = optionsHtml;
+        }
+
+        // Render ปุ่ม "ทุกหมวด"
         let html = `
           <button class="cat-btn ${currentCategory === "ทุกหมวด" ? "active" : ""}"
                   onclick="selectCategory('ทุกหมวด')">
@@ -663,6 +659,7 @@
           </button>
         `;
 
+        // Render ปุ่ม "แนะนำ"
         html += `
           <button class="cat-btn recommend-cat ${currentCategory === "แนะนำ" ? "active recommend-cat" : ""}"
                   onclick="selectCategory('แนะนำ')">
@@ -675,20 +672,20 @@
           </button>
         `;
 
+        // Render หมวดปกติ (เรียงตาม Priority)
         finalCategories.forEach((cat) => {
           const count = counts[cat] || 0;
-
           const catObj = categories.find((c) => c.name === cat);
           const priorityText = catObj
             ? `<span class="priority-badge" title="priority = ${catObj.priority}">P${catObj.priority}</span>`
-            : "";
+            : (cat === "อื่นๆ" ? `<span class="priority-badge">P999</span>` : "");
+          
           const editBtn = catObj
             ? `<span
                  class="edit-priority-btn"
                  role="button"
                  tabindex="0"
                  onclick="event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority})"
-                 onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); openPriorityModal('${catObj.id}', '${escapeAttr(cat)}', ${catObj.priority}); }"
                  title="แก้ไข priority">
                  <i class="fas fa-pen"></i>
                </span>`
@@ -700,7 +697,6 @@
               <span class="cat-name truncate">
                 <span class="truncate">${escapeHtml(cat)}</span>
               </span>
-
               <span class="inline-flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
                 ${priorityText}
                 ${editBtn}
@@ -711,13 +707,6 @@
         });
 
         sidebar.innerHTML = html;
-
-        const datalist = document.getElementById("categorySuggestions");
-        if (datalist) {
-          datalist.innerHTML = masterNames
-            .map((c) => `<option value="${escapeAttr(c)}"></option>`)
-            .join("");
-        }
       };
 
       window.selectCategory = function (cat) {
@@ -736,9 +725,7 @@
         document.getElementById("newCategoryName").value = "";
         document.getElementById("newCategoryPriority").value = (categories.length + 1) * 1;
         document.getElementById("addCategoryModal").classList.add("active");
-        setTimeout(() => {
-          document.getElementById("newCategoryName").focus();
-        }, 100);
+        setTimeout(() => document.getElementById("newCategoryName").focus(), 100);
       };
 
       window.closeAddCategoryModal = function () {
@@ -815,11 +802,7 @@
 
         if (!currentPriorityCategoryId) return;
         if (isNaN(priority) || priority < 1) {
-          return showToast(
-            "กรุณากรอก priority เป็นตัวเลข ≥ 1",
-            "fa-exclamation-circle",
-            "#dc2626"
-          );
+          return showToast("กรุณากรอก priority เป็นตัวเลข ≥ 1", "fa-exclamation-circle", "#dc2626");
         }
 
         const btn = document.getElementById("prioritySaveBtn");
@@ -841,11 +824,7 @@
 
           closePriorityModal();
           renderSidebar();
-          showToast(
-            `✅ อัปเดต priority ของ "${savedName}" เป็น ${priority}`,
-            "fa-check",
-            "#16a34a"
-          );
+          showToast(`✅ อัปเดต priority ของ "${savedName}" เป็น ${priority}`, "fa-check", "#16a34a");
         } catch (err) {
           console.error(err);
           showToast("❌ บันทึกไม่สำเร็จ: " + err.message, "fa-times", "#dc2626");
@@ -855,11 +834,10 @@
         }
       };
 
-      // ---------- Render List ----------
+      // ---------- Render List (เรียง แนะนำ -> Priority) ----------
       window.renderList = function () {
         const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
 
-        // 1) กรองรายการตามหมวดและคำค้นหา
         let filtered = menus.filter((m) => {
           let matchCat = false;
           if (currentCategory === "ทุกหมวด") {
@@ -874,21 +852,23 @@
           return matchCat && matchQ;
         });
 
-        // 2) ถ้าเลือก "ทุกหมวด" ให้จัดเรียงรายการอาหารตาม priority ของหมวดหมู่
-        if (currentCategory === "ทุกหมวด") {
-          // สร้าง Map เพื่อเก็บ priority ของแต่ละหมวด (ถ้าไม่มีให้ค่าเยอะๆ ไปอยู่ท้ายสุด)
-          const priorityMap = {};
-          categories.forEach((c) => {
-            priorityMap[c.name] = c.priority;
-          });
-          priorityMap["อื่น"] = 9999; // กำหนดให้หมวด "อื่น" อยู่ท้ายสุด
+        // จัดเรียงข้อมูล: เมนูแนะนำขึ้นก่อน เสมอ ตามด้วย Priority ของหมวดหมู่
+        const priorityMap = {};
+        categories.forEach((c) => {
+          priorityMap[c.name] = c.priority;
+        });
+        priorityMap["อื่นๆ"] = 9999;
 
-          filtered.sort((a, b) => {
-            const pA = priorityMap[a.category] ?? 9999;
-            const pB = priorityMap[b.category] ?? 9999;
-            return pA - pB;
-          });
-        }
+        filtered.sort((a, b) => {
+          // 1. นำเมนูแนะนำขึ้นก่อน
+          if (a.recommend && !b.recommend) return -1;
+          if (!a.recommend && b.recommend) return 1;
+
+          // 2. เรียงตาม Priority หมวดหมู่
+          const pA = priorityMap[a.category] ?? 9999;
+          const pB = priorityMap[b.category] ?? 9999;
+          return pA - pB;
+        });
 
         if (filtered.length === 0) {
           listEl.innerHTML = `<p class="text-center text-gray-400 py-10 text-sm">ไม่พบเมนู</p>`;
@@ -912,11 +892,7 @@
             <div class="flex-1 min-w-0">
               <div class="font-bold text-gray-800 text-sm truncate">${escapeHtml(m.title) || "-"}</div>
               <div class="text-xs text-gray-500 truncate">
-                <i class="fas fa-tag text-gray-400 mr-1"></i>${escapeHtml(m.category)} ${
-                  m.category === "อื่น" && m.rawCategory !== "อื่น"
-                    ? `<span class="text-gray-400 text-[10px]">(${escapeHtml(m.rawCategory)})</span>`
-                    : ""
-                }
+                <i class="fas fa-tag text-gray-400 mr-1"></i>${escapeHtml(m.category)}
               </div>
               <div class="text-blue-600 font-bold text-sm mt-1">${m.price.toLocaleString()} บาท</div>
             </div>
@@ -954,14 +930,19 @@
         document.getElementById("formTitle").innerText = "เพิ่มเมนูใหม่";
         document.getElementById("editId").value = "";
         document.getElementById("menuName").value = "";
-        document.getElementById("menuCategory").value =
-          currentCategory !== "ทุกหมวด" && currentCategory !== "แนะนำ" && currentCategory !== "อื่น" ? currentCategory : "";
+        
+        const catSelect = document.getElementById("menuCategory");
+        if (currentCategory !== "ทุกหมวด" && currentCategory !== "แนะนำ" && currentCategory !== "อื่นๆ") {
+          catSelect.value = currentCategory;
+        } else {
+          catSelect.selectedIndex = 0;
+        }
+
         document.getElementById("menuPrice").value = "";
         document.getElementById("menuDesc").value = "";
         document.getElementById("menuRecommend").checked = false;
         document.getElementById("imageInput").value = "";
-        document.getElementById("previewImg").src =
-          "https://via.placeholder.com/100?text=No+Image";
+        document.getElementById("previewImg").src = "https://via.placeholder.com/100?text=No+Image";
         document.getElementById("formModal").classList.add("active");
       };
 
@@ -975,13 +956,12 @@
         document.getElementById("formTitle").innerText = "แก้ไขเมนู";
         document.getElementById("editId").value = id;
         document.getElementById("menuName").value = m.title || "";
-        document.getElementById("menuCategory").value = m.rawCategory || m.category || "";
+        document.getElementById("menuCategory").value = m.rawCategory || m.category || "อื่นๆ";
         document.getElementById("menuPrice").value = m.price || 0;
         document.getElementById("menuDesc").value = m.desc || "";
         document.getElementById("menuRecommend").checked = currentRecommend;
         document.getElementById("imageInput").value = "";
-        document.getElementById("previewImg").src =
-          m.img || "https://via.placeholder.com/100?text=No+Image";
+        document.getElementById("previewImg").src = m.img || "https://via.placeholder.com/100?text=No+Image";
         document.getElementById("formModal").classList.add("active");
       };
 
@@ -1006,8 +986,7 @@
       // ---------- Save Menu ----------
       window.saveMenu = async function () {
         const name = document.getElementById("menuName").value.trim();
-        const category =
-          document.getElementById("menuCategory").value.trim() || "อื่น";
+        const category = document.getElementById("menuCategory").value.trim() || "อื่นๆ";
         const priceRaw = document.getElementById("menuPrice").value;
         const desc = document.getElementById("menuDesc").value.trim();
         const recommend = document.getElementById("menuRecommend").checked;
@@ -1015,6 +994,8 @@
 
         if (!name)
           return showToast("กรุณากรอกชื่อเมนู", "fa-exclamation-circle", "#dc2626");
+        if (!category)
+          return showToast("กรุณาเลือกหมวดหมู่", "fa-exclamation-circle", "#dc2626");
         if (isNaN(price) || price < 0)
           return showToast("กรุณากรอกราคาให้ถูกต้อง", "fa-exclamation-circle", "#dc2626");
 
@@ -1091,7 +1072,7 @@
         toastTimer = setTimeout(() => t.classList.remove("show"), 2500);
       }
 
-      // init
+      // Initial Load
       loadMenus();
     </script>
   </body>
