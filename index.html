@@ -557,18 +557,26 @@
       const PROMPTPAY_ID = "0899100419";
       const PROMPTPAY_NAME = "ครัวจันทร์เพ็ญ";
 
-      async function printBillSlip(bill) {
+async function printBillSlip(bill) {
         try {
           const ordersSnap = await getDocs(collection(db, "orders"));
           const items = [];
           let computedTotal = 0;
 
+          // แปลงเลขโต๊ะให้เป็น String และตัดช่องว่างส่วนเกินเพื่อความแม่นยำ
+          const targetTable = String(bill.table || "").trim();
+          const targetSession = bill.sessionId ? String(bill.sessionId).trim() : "";
+
           ordersSnap.forEach((d) => {
             const o = d.data();
-            const sameTable = String(o.table) === String(bill.table);
-            const sameSession = bill.sessionId
-              ? o.sessionId === bill.sessionId
-              : true;
+            const orderTable = String(o.table || "").trim();
+            const orderSession = o.sessionId ? String(o.sessionId).trim() : "";
+
+            const sameTable = (orderTable === targetTable);
+            // ถ้ามี sessionId ให้เช็คตรงกัน แต่ถ้าฝั่งบิลไม่มี sessionId ให้รวมโต๊ะนั้นทั้งหมด
+            const sameSession = targetSession ? (orderSession === targetSession) : true;
+
+            // ตรวจสอบเฉพาะออเดอร์ที่ยังไม่ถูกยกเลิก (หรือกรองตามสถานะที่ต้องการรวมบิล เช่น ยังไม่ได้เคลียร์)
             if (sameTable && sameSession) {
               const price = Number(o.price || 0);
               const lineTotal = price * Number(o.qty || 1);
@@ -581,6 +589,24 @@
               });
             }
           });
+
+          // เผื่อกรณีหาแบบตรงเป๊ะไม่เจอ ลองค้นหาเฉพาะเลขโต๊ะอย่างเดียวดูก่อน (Fallback)
+          if (items.length === 0 && targetSession) {
+            ordersSnap.forEach((d) => {
+              const o = d.data();
+              if (String(o.table || "").trim() === targetTable) {
+                const price = Number(o.price || 0);
+                const lineTotal = price * Number(o.qty || 1);
+                computedTotal += lineTotal;
+                items.push({
+                  qty: Number(o.qty || 1),
+                  name: o.title + (o.option ? ` (${o.option})` : ""),
+                  price: lineTotal,
+                  note: o.additionalDetail || "",
+                });
+              }
+            });
+          }
 
           if (items.length === 0) {
             showToast("ไม่พบรายการอาหารของโต๊ะนี้", "error");
@@ -605,9 +631,6 @@
             order_info: `🧾 บิลสรุปยอด | โต๊ะ ${bill.table}\n${now}`,
             items: items,
             total: total,
-            // --- ปิดการพิมพ์ QR Code ชั่วคราว ---
-            // promptpay_id: PROMPTPAY_ID,
-            // promptpay_name: PROMPTPAY_NAME,
             footer: [
               bill.sessionId ? `👤 ${bill.sessionId}` : "",
               `ขอบคุณที่ใช้บริการ 🙏`,
