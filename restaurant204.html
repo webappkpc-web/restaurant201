@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รับชำระเงินและปิดโต๊ะ</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #17212b;
+      --muted: #667085;
+      --border: #e4e7ec;
+      --primary: #1677ff;
+      --primary-dark: #0958d9;
+      --success: #14804a;
+      --success-bg: #e9f7ef;
+      --warning: #8a5700;
+      --warning-bg: #fff4d6;
+      --danger: #b42318;
+      --danger-bg: #fff0ee;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: #132238;
+      color: white;
+      padding: 20px 24px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    header p {
+      margin: 6px 0 0;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    main {
+      width: min(1100px, calc(100% - 28px));
+      margin: 24px auto;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .summary {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .table-name {
+      font-size: 22px;
+      font-weight: 750;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.waiting {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .details {
+      display: grid;
+      gap: 9px;
+      margin: 12px 0 18px;
+    }
+
+    .detail {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .detail .label { color: var(--muted); }
+    .detail .value {
+      text-align: right;
+      overflow-wrap: anywhere;
+      font-weight: 600;
+    }
+
+    .amount {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .pay-button {
+      width: 100%;
+      color: white;
+      background: var(--success);
+    }
+
+    .pay-button:hover:not(:disabled) { background: #0e673b; }
+
+    .secondary-button {
+      color: var(--text);
+      background: #eef2f6;
+    }
+
+    .primary-button {
+      color: white;
+      background: var(--primary);
+    }
+
+    .primary-button:hover:not(:disabled) { background: var(--primary-dark); }
+
+    .empty, .loading, .error {
+      padding: 28px;
+      border-radius: 12px;
+      text-align: center;
+      background: white;
+      border: 1px solid var(--border);
+    }
+
+    .error {
+      color: var(--danger);
+      background: var(--danger-bg);
+      border-color: #fecdca;
+    }
+
+    .notice {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .notice.info {
+      display: block;
+      color: #1849a9;
+      background: #eff8ff;
+      border: 1px solid #b2ddff;
+    }
+
+    .notice.error {
+      display: block;
+      text-align: left;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(16, 24, 40, 0.55);
+      z-index: 10;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: min(460px, 100%);
+      padding: 22px;
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal h2 {
+      margin: 0 0 8px;
+      font-size: 21px;
+    }
+
+    .modal p {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .confirm-summary {
+      padding: 14px;
+      border-radius: 10px;
+      background: #f8fafc;
+      margin: 14px 0;
+    }
+
+    .confirm-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 16px 0;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .confirm-check input {
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 520px) {
+      header { padding: 17px; }
+      header h1 { font-size: 20px; }
+      main { margin-top: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>รับชำระเงินและปิดโต๊ะ</h1>
+    <p>แสดงบิลที่พิมพ์แล้วและยังไม่ได้ยืนยันรับชำระเงินสด</p>
+  </header>
+
+  <main>
+    <div id="notice" class="notice"></div>
+
+    <div class="toolbar">
+      <div id="summary" class="summary">กำลังเชื่อมต่อ…</div>
+      <button id="refreshButton" class="secondary-button" type="button">รีเฟรชรายการ</button>
+    </div>
+
+    <div id="content" class="loading">กำลังโหลดรายการบิล…</div>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true"
+       aria-labelledby="modalTitle">
+    <div class="modal">
+      <h2 id="modalTitle">ยืนยันรับชำระเงินสด</h2>
+      <p>ตรวจสอบโต๊ะและยอดเงินกับลูกค้าก่อนยืนยัน การยืนยันนี้จะปิดเซสชันของโต๊ะ</p>
+
+      <div id="confirmSummary" class="confirm-summary"></div>
+
+      <label class="confirm-check">
+        <input id="confirmCheckbox" type="checkbox">
+        <span>ยืนยันว่าได้รับเงินสดครบตามยอด และต้องการปิดเซสชันนี้</span>
+      </label>
+
+      <div class="modal-actions">
+        <button id="cancelButton" class="secondary-button" type="button">กลับ</button>
+        <button id="confirmButton" class="primary-button" type="button" disabled>
+          ยืนยันรับเงินและปิดโต๊ะ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      onSnapshot,
+      runTransaction,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    // ใช้ Firebase project เดียวกับ restaurant201
+    const firebaseConfig = {
+      apiKey: "AIzaSyAhJaUZhl14mlJ7I_FVMu2fuMg6qAKspO4",
+      authDomain: "restaurant-101a.firebaseapp.com",
+      projectId: "restaurant-101a",
+      storageBucket: "restaurant-101a.firebasestorage.app",
+      messagingSenderId: "35898180691",
+      appId: "1:35898180691:web:21e39b2796018d48e432a6",
+      measurementId: "G-5KR88CLQHM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const contentEl = document.getElementById("content");
+    const summaryEl = document.getElementById("summary");
+    const noticeEl = document.getElementById("notice");
+    const refreshButton = document.getElementById("refreshButton");
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const confirmSummary = document.getElementById("confirmSummary");
+    const confirmCheckbox = document.getElementById("confirmCheckbox");
+    const confirmButton = document.getElementById("confirmButton");
+    const cancelButton = document.getElementById("cancelButton");
+
+    let bills = [];
+    let selectedBill = null;
+    let unsubscribeBills = null;
+    let isPaying = false;
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      })[char]);
+    }
+
+    function money(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "ไม่ระบุยอด";
+      return new Intl.NumberFormat("th-TH", {
+        style: "currency",
+        currency: "THB",
+        maximumFractionDigits: 2
+      }).format(number);
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp || typeof timestamp.toDate !== "function") return "—";
+      return timestamp.toDate().toLocaleString("th-TH");
+    }
+
+    function showNotice(message, type = "info") {
+      noticeEl.textContent = message;
+      noticeEl.className = `notice ${type}`;
+      if (!message) noticeEl.className = "notice";
+    }
+
+    function getUnpaidPrintedBills() {
+      return bills
+        .filter(bill =>
+          bill.status === "done" &&
+          bill.paymentStatus !== "paid"
+        )
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? 0;
+          const bTime = b.createdAt?.toMillis?.() ?? 0;
+          return aTime - bTime;
+        });
+    }
+
+    function render() {
+      const pendingBills = getUnpaidPrintedBills();
+      summaryEl.textContent = `บิลรอรับชำระ ${pendingBills.length} รายการ`;
+
+      if (pendingBills.length === 0) {
+        contentEl.className = "empty";
+        contentEl.textContent = "ไม่มีบิลที่รอรับชำระเงิน";
+        return;
+      }
+
+      contentEl.className = "grid";
+      contentEl.innerHTML = pendingBills.map(bill => {
+        const table = bill.table || "ไม่ระบุโต๊ะ";
+        const sessionId = bill.sessionId || "";
+        const tableCode = bill.tableCode || "";
+        const total = Number(bill.totalPrice);
+        const hasValidTotal = Number.isFinite(total);
+
+        return `
+          <article class="card">
+            <div class="card-top">
+              <div>
+                <div class="table-name">โต๊ะ ${escapeHtml(table)}</div>
+              </div>
+              <span class="badge waiting">รอรับชำระ</span>
+            </div>
+
+            <div class="details">
+              <div class="detail">
+                <span class="label">Session ID</span>
+                <span class="value">${escapeHtml(sessionId || "ไม่มีข้อมูล")}</span>
+              </div>
+              <div class="detail">
+                <span class="label">Table code</span>
+                <span class="value">${escapeHtml(tableCode || "—")}</span>
+              </div>
+              <div class="detail">
+                <span class="label">เวลาสร้างบิล</span>
+                <span class="value">${escapeHtml(formatDate(bill.createdAt))}</span>
+              </div>
+              <div class="detail">
+                <span class="label">ยอดที่ต้องรับ</span>
+                <span class="value amount">${escapeHtml(money(bill.totalPrice))}</span>
+              </div>
+            </div>
+
+            <button
+              class="pay-button"
+              type="button"
+              data-bill-id="${escapeHtml(bill.id)}"
+              ${(!sessionId || !hasValidTotal) ? "disabled" : ""}>
+              รับชำระเงิน
+            </button>
+          </article>
+        `;
+      }).join("");
+
+      contentEl.querySelectorAll("[data-bill-id]").forEach(button => {
+        button.addEventListener("click", () => {
+          const bill = pendingBills.find(item => item.id === button.dataset.billId);
+          if (bill) openConfirmModal(bill);
+        });
+      });
+    }
+
+    function openConfirmModal(bill) {
+      selectedBill = bill;
+      confirmCheckbox.checked = false;
+      confirmButton.disabled = true;
+
+      confirmSummary.innerHTML = `
+        <div class="detail">
+          <span class="label">โต๊ะ</span>
+          <span class="value">${escapeHtml(bill.table || "ไม่ระบุ")}</span>
+        </div>
+        <div class="detail">
+          <span class="label">Session ID</span>
+          <span class="value">${escapeHtml(bill.sessionId || "ไม่มีข้อมูล")}</span>
+        </div>
+        <div class="detail">
+          <span class="label">ยอดรับเงิน</span>
+          <span class="value amount">${escapeHtml(money(bill.totalPrice))}</span>
+        </div>
+        <div class="detail">
+          <span class="label">วิธีชำระ</span>
+          <span class="value">เงินสด</span>
+        </div>
+      `;
+
+      modalBackdrop.classList.add("open");
+    }
+
+    function closeConfirmModal() {
+      modalBackdrop.classList.remove("open");
+      selectedBill = null;
+      confirmCheckbox.checked = false;
+      confirmButton.disabled = true;
+    }
+
+    async function confirmCashPayment() {
+      if (!selectedBill || isPaying) return;
+
+      const bill = selectedBill;
+      const billRef = doc(db, "bills", bill.id);
+
+      if (!bill.sessionId) {
+        showNotice("บิลนี้ไม่มี sessionId จึงไม่สามารถปิดเซสชันได้", "error");
+        return;
+      }
+
+      const sessionRef = doc(db, "sessions", bill.sessionId);
+      const total = Number(bill.totalPrice);
+
+      if (!Number.isFinite(total)) {
+        showNotice("ยอดบิลไม่ถูกต้อง จึงยังยืนยันการชำระเงินไม่ได้", "error");
+        return;
+      }
+
+      isPaying = true;
+      confirmButton.disabled = true;
+      confirmButton.textContent = "กำลังบันทึก…";
+      showNotice("");
+
+      try {
+        await runTransaction(db, async transaction => {
+          // อ่านเอกสารทั้งหมดก่อนเริ่มเขียน เพื่อให้การชำระเงินกับปิดเซสชัน
+          // สำเร็จหรือยกเลิกพร้อมกัน
+          const billSnap = await transaction.get(billRef);
+          const sessionSnap = await transaction.get(sessionRef);
+
+          if (!billSnap.exists()) {
+            throw new Error("ไม่พบบิลนี้ในระบบ");
+          }
+          if (!sessionSnap.exists()) {
+            throw new Error(
+              `ไม่พบเอกสาร sessions/${bill.sessionId} กรุณาตรวจสอบว่ามีการสร้าง session document แล้ว`
+            );
+          }
+
+          const currentBill = billSnap.data();
+          const currentSession = sessionSnap.data();
+
+          if (currentBill.paymentStatus === "paid") {
+            throw new Error("บิลนี้ได้รับชำระเงินแล้ว");
+          }
+
+          if (currentBill.status !== "done") {
+            throw new Error("บิลยังไม่อยู่ในสถานะพิมพ์แล้ว จึงไม่สามารถรับชำระได้");
+          }
+
+          if (
+            currentBill.sessionId &&
+            currentBill.sessionId !== bill.sessionId
+          ) {
+            throw new Error("sessionId ของบิลเปลี่ยนไป กรุณารีเฟรชรายการ");
+          }
+
+          if (
+            currentSession.table &&
+            currentBill.table &&
+            currentSession.table !== currentBill.table
+          ) {
+            throw new Error("โต๊ะในบิลไม่ตรงกับโต๊ะในเซสชัน กรุณาตรวจสอบก่อน");
+          }
+
+          if (currentSession.status === "closed") {
+            throw new Error("เซสชันนี้ปิดไปแล้ว แต่บิลยังไม่ได้ระบุว่าชำระ กรุณาตรวจสอบกับผู้ดูแล");
+          }
+
+          transaction.update(billRef, {
+            paymentStatus: "paid",
+            paymentMethod: "cash",
+            paidAt: serverTimestamp(),
+            paidAmount: total
+          });
+
+          transaction.update(sessionRef, {
+            status: "closed",
+            closedAt: serverTimestamp(),
+            paymentStatus: "paid",
+            paymentMethod: "cash",
+            totalAmount: total,
+            updatedAt: serverTimestamp()
+          });
+        });
+
+        closeConfirmModal();
+        showNotice(
+          `รับชำระเงินสด ${money(total)} และปิดเซสชันของโต๊ะ ${bill.table || ""} เรียบร้อยแล้ว`,
+          "info"
+        );
+      } catch (error) {
+        console.error("ยืนยันรับชำระเงินไม่สำเร็จ:", error);
+        showNotice(error.message || "เกิดข้อผิดพลาดขณะบันทึกการชำระเงิน", "error");
+      } finally {
+        isPaying = false;
+        confirmButton.textContent = "ยืนยันรับเงินและปิดโต๊ะ";
+        confirmButton.disabled = !confirmCheckbox.checked;
+      }
+    }
+
+    function startBillsListener() {
+      if (unsubscribeBills) unsubscribeBills();
+
+      contentEl.className = "loading";
+      contentEl.textContent = "กำลังโหลดรายการบิล…";
+
+      // อ่าน bills แล้วกรองสถานะในหน้าเว็บ เพื่อไม่ต้องพึ่ง composite index
+      unsubscribeBills = onSnapshot(
+        collection(db, "bills"),
+        snapshot => {
+          bills = snapshot.docs.map(item => ({
+            id: item.id,
+            ...item.data()
+          }));
+          render();
+        },
+        error => {
+          console.error("อ่านรายการบิลไม่สำเร็จ:", error);
+          contentEl.className = "error";
+          contentEl.textContent =
+            "โหลดรายการบิลไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อและ Firestore Security Rules";
+          summaryEl.textContent = "เกิดข้อผิดพลาด";
+        }
+      );
+    }
+
+    confirmCheckbox.addEventListener("change", () => {
+      confirmButton.disabled = !confirmCheckbox.checked || isPaying;
+    });
+
+    confirmButton.addEventListener("click", confirmCashPayment);
+    cancelButton.addEventListener("click", closeConfirmModal);
+    refreshButton.addEventListener("click", startBillsListener);
+
+    modalBackdrop.addEventListener("click", event => {
+      if (event.target === modalBackdrop && !isPaying) {
+        closeConfirmModal();
+      }
+    });
+
+    startBillsListener();
+  </script>
+</body>
+</html>
