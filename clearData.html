@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>จัดการและล้างข้อมูลระบบ - ครัวจันทร์เพ็ญ</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        box-sizing: border-box;
+      }
+
+      .container {
+        background: #ffffff;
+        width: 100%;
+        max-width: 440px;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
+
+      h2 {
+        margin: 0 0 8px 0;
+        color: #1e293b;
+        font-size: 1.4rem;
+        text-align: center;
+      }
+
+      p.subtitle {
+        margin: 0 0 24px 0;
+        color: #64748b;
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      .stats-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px dashed #e2e8f0;
+      }
+
+      .stat-row:last-child {
+        border-bottom: none;
+      }
+
+      .stat-count {
+        font-weight: bold;
+        color: #0f172a;
+      }
+
+      .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      button {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .btn-single {
+        background-color: #fff1f2;
+        color: #be123c;
+        border: 1px solid #fecdd3;
+      }
+
+      .btn-single:hover:not(:disabled) {
+        background-color: #ffe4e6;
+      }
+
+      .btn-danger-all {
+        background-color: #dc2626;
+        color: #ffffff;
+        margin-top: 8px;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+      }
+
+      .btn-danger-all:hover:not(:disabled) {
+        background-color: #b91c1c;
+      }
+
+      .btn-refresh {
+        background-color: #f1f5f9;
+        color: #334155;
+        margin-top: 8px;
+        font-size: 0.9rem;
+        padding: 10px;
+      }
+
+      .btn-refresh:hover:not(:disabled) {
+        background-color: #e2e8f0;
+      }
+
+      #statusLog {
+        margin-top: 16px;
+        font-size: 0.85rem;
+        text-align: center;
+        min-height: 20px;
+        color: #16a34a;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>🗑️ ล้างข้อมูลระบบ</h2>
+      <p class="subtitle">ครัวจันทร์เพ็ญ (Firestore Database)</p>
+
+      <!-- แสดงจำนวนข้อมูลปัจจุบัน -->
+      <div class="stats-box">
+        <div class="stat-row">
+          <span>📋 ตาราง orders (รายการอาหาร)</span>
+          <span id="count-orders" class="stat-count">กำลังโหลด...</span>
+        </div>
+        <div class="stat-row">
+          <span>🧾 ตาราง bills (เรียกเช็คบิล)</span>
+          <span id="count-bills" class="stat-count">กำลังโหลด...</span>
+        </div>
+        <div class="stat-row">
+          <span>🔔 ตาราง callStaff (เรียกพนักงาน)</span>
+          <span id="count-callStaff" class="stat-count">กำลังโหลด...</span>
+        </div>
+      </div>
+
+      <!-- ปุ่มลบข้อมูล -->
+      <div class="btn-group">
+        <button class="btn-single" data-col="orders">
+          ลบข้อมูลทั้งหมดใน orders
+        </button>
+        <button class="btn-single" data-col="bills">
+          ลบข้อมูลทั้งหมดใน bills
+        </button>
+        <button class="btn-single" data-col="callStaff">
+          ลบข้อมูลทั้งหมดใน callStaff
+        </button>
+
+        <button id="btnDeleteAll" class="btn-danger-all">
+          ⚠️ ลบข้อมูลทั้งหมด (ทั้ง 3 ตาราง)
+        </button>
+
+        <button id="btnRefresh" class="btn-refresh">
+          🔄 รีเฟรชจำนวนข้อมูล
+        </button>
+      </div>
+
+      <div id="statusLog"></div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDocs,
+        writeBatch,
+        doc,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      // การตั้งค่าเชื่อมต่อ Firestore จากไฟล์เดิม
+      const firebaseConfig = {
+        apiKey: "AIzaSyAhJaUZhl14mlJ7I_FVMu2fuMg6qAKspO4",
+        authDomain: "restaurant-101a.firebaseapp.com",
+        projectId: "restaurant-101a",
+        storageBucket: "restaurant-101a.firebasestorage.app",
+        messagingSenderId: "35898180691",
+        appId: "1:35898180691:web:21e39b2796018d48e432a6",
+        measurementId: "G-5KR88CLQHM",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      const COLLECTIONS = ["orders", "bills", "callStaff"];
+      const statusLog = document.getElementById("statusLog");
+      const allButtons = document.querySelectorAll("button");
+
+      function setLoading(isLoading, message = "") {
+        allButtons.forEach((btn) => (btn.disabled = isLoading));
+        if (message) {
+          statusLog.style.color = "#2563eb";
+          statusLog.textContent = message;
+        }
+      }
+
+      function showMessage(message, isError = false) {
+        statusLog.style.color = isError ? "#dc2626" : "#16a34a";
+        statusLog.textContent = message;
+      }
+
+      // โหลดจำนวนข้อมูลในแต่ละ Collection
+      async function loadCounts() {
+        for (const colName of COLLECTIONS) {
+          const el = document.getElementById(`count-${colName}`);
+          try {
+            const snap = await getDocs(collection(db, colName));
+            el.textContent = `${snap.size} รายการ`;
+          } catch (err) {
+            el.textContent = "ผิดพลาด";
+            console.error(`Error counting ${colName}:`, err);
+          }
+        }
+      }
+
+      // ฟังก์ชันลบข้อมูลทั้งหมดใน 1 Collection (รองรับข้อมูลมากกว่า 500 รายการด้วย Batch)
+      async function clearCollection(colName) {
+        const colRef = collection(db, colName);
+        const snapshot = await getDocs(colRef);
+
+        if (snapshot.empty) return 0;
+
+        const docs = snapshot.docs;
+        const batchSize = 500; // ข้อจำกัดของ Firestore WriteBatch ต่อ 1 ครั้ง
+
+        for (let i = 0; i < docs.length; i += batchSize) {
+          const batch = writeBatch(db);
+          const chunk = docs.slice(i, i + batchSize);
+          chunk.forEach((d) => {
+            batch.delete(doc(db, colName, d.id));
+          });
+          await batch.commit();
+        }
+
+        return docs.length;
+      }
+
+      // Event สำหรับปุ่มลบแยกแต่ละตาราง
+      document.querySelectorAll(".btn-single").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const colName = btn.dataset.col;
+          const confirmed = confirm(
+            `ยืนยันการลบข้อมูลทั้งหมดในตาราง "${colName}" หรือไม่?\n(ข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้)`
+          );
+          if (!confirmed) return;
+
+          setLoading(true, `กำลังลบข้อมูลใน ${colName}...`);
+          try {
+            const deletedCount = await clearCollection(colName);
+            await loadCounts();
+            showMessage(`✅ ลบข้อมูลใน ${colName} สำเร็จ (${deletedCount} รายการ)`);
+          } catch (err) {
+            console.error(err);
+            showMessage(`❌ เกิดข้อผิดพลาด: ${err.message}`, true);
+          } finally {
+            setLoading(false);
+          }
+        });
+      });
+
+      // Event สำหรับปุ่มลบทั้งหมด 3 ตารางพร้อมกัน
+      document.getElementById("btnDeleteAll").addEventListener("click", async () => {
+        const confirmed = confirm(
+          "⚠️ คำเตือน: คุณกำลังจะลบข้อมูลทั้งหมดในตาราง:\n- orders\n- bills\n- callStaff\n\nยืนยันที่จะดำเนินการต่อหรือไม่?"
+        );
+        if (!confirmed) return;
+
+        setLoading(true, "กำลังลบข้อมูลทั้งหมดในระบบ...");
+        try {
+          let totalDeleted = 0;
+          for (const colName of COLLECTIONS) {
+            totalDeleted += await clearCollection(colName);
+          }
+          await loadCounts();
+          showMessage(`✅ ล้างข้อมูลทั้งหมดสำเร็จ (รวม ${totalDeleted} รายการ)`);
+        } catch (err) {
+          console.error(err);
+          showMessage(`❌ เกิดข้อผิดพลาด: ${err.message}`, true);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      // ปุ่มรีเฟรชตัวเลข
+      document.getElementById("btnRefresh").addEventListener("click", async () => {
+        setLoading(true, "กำลังอัปเดตข้อมูล...");
+        await loadCounts();
+        showMessage("อัปเดตจำนวนข้อมูลล่าสุดแล้ว");
+        setLoading(false);
+      });
+
+      // โหลดจำนวนข้อมูลเมื่อเปิดหน้าเว็บ
+      loadCounts();
+    </script>
+  </body>
+</html>
