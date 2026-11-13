@@ -7,7 +7,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Kitchen Order System</title>
+    <title>ครัวจันทร์เพ็ญ|จัดการออเดอร์|1113</title>
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -524,7 +524,7 @@
               note: item.additionalDetail || "",
             },
           ],
-          footer: `👤 ${item.sessionId || "-"}`,
+          footer: `👤 ${item.userSessionId || item.sessionId || "-"}`,
         };
         const ok = await postToPrintServer(payload);
         if (ok) showToast(`พิมพ์เข้าครัว: ${item.title}`, "info");
@@ -547,37 +547,132 @@
               note: item.additionalDetail || "",
             },
           ],
-          footer: `👤 ${item.sessionId || "-"}`,
+          footer: `👤 ${item.userSessionId || item.sessionId || "-"}`,
         };
         const ok = await postToPrintServer(payload);
         if (ok) showToast(`พิมพ์สลิปเสิร์ฟ: ${item.title}`, "info");
       }
 
       // ==================== Print Bill (เรียกสรุปยอด) ====================
+// ==================== Print Bill (เรียกสรุปยอด) ====================
       const PROMPTPAY_ID = "0899100419";
       const PROMPTPAY_NAME = "ครัวจันทร์เพ็ญ";
 
-async function printBillSlip(bill) {
+      // ฟังก์ชันสำหรับแสดงบิลบนหน้าเว็บเบราว์เซอร์ (กรณีเครื่องพิมพ์ออฟไลน์)
+      function showBillPreviewHtml(bill, items, total) {
+        const now = new Date().toLocaleString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+
+        let itemsHtml = "";
+        items.forEach((item) => {
+          itemsHtml += `
+            <tr style="border-bottom: 1px dashed #ddd;">
+              <td style="padding: 8px 4px; text-align: left;">${escapeHtml(item.name)}${item.note ? `<br><small style="color: #666;">📝 ${escapeHtml(item.note)}</small>` : ""}</td>
+              <td style="padding: 8px 4px; text-align: center;">${item.qty}</td>
+              <td style="padding: 8px 4px; text-align: right;">${item.price.toLocaleString()}</td>
+            </tr>
+          `;
+        });
+
+        const previewWindow = window.open("", "_blank", "width=400,height=600");
+        if (!previewWindow) {
+          showToast("กรุณาอนุญาตให้เบราว์เซอร์เปิด Pop-up หน้าต่างแสดงบิล", "error");
+          return;
+        }
+
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>ตรวจสอบบิล - โต๊ะ ${escapeHtml(bill.table)}</title>
+            <style>
+              body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; background: #f9fafb; color: #333; }
+              .receipt { background: #fff; max-width: 320px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+              h2, h3 { text-align: center; margin: 0 0 5px; }
+              .shop-info { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 15px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
+              th { border-bottom: 2px solid #333; padding: 6px 4px; text-align: left; }
+              .total-section { margin-top: 15px; border-top: 2px solid #333; padding-top: 10px; font-size: 1.1rem; font-weight: bold; display: flex; justify-content: space-between; }
+              .footer { text-align: center; margin-top: 20px; font-size: 0.85rem; color: #777; }
+              .offline-banner { background: #fee2e2; color: #991b1b; padding: 8px; border-radius: 6px; text-align: center; font-size: 0.85rem; margin-bottom: 15px; font-weight: bold; }
+              .print-btn { display: block; width: 100%; background: #2563eb; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+              .print-btn:hover { background: #1d4ed8; }
+            </style>
+          </head>
+          <body>
+            <div class="receipt">
+              <div class="offline-banner">⚠️ เครื่องพิมพ์ออฟไลน์ (โหมดตรวจสอบ)</div>
+              <h2>${SHOP_NAME}</h2>
+              <div class="shop-info">ใบสรุปรายการอาหาร (Check Bill)<br>${now}</div>
+              
+              <div style="font-size: 0.95rem; margin-bottom: 10px;">
+                <strong>โต๊ะ:</strong> ${escapeHtml(bill.table)}<br>
+                ${bill.tableSessionId ? `<strong>รหัสรอบ:</strong> ${escapeHtml(bill.tableSessionId)}` : ""}
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>รายการ</th>
+                    <th style="text-align: center;">จำนวน</th>
+                    <th style="text-align: right;">ราคา</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <span>รวมทั้งสิ้น:</span>
+                <span style="color: #2563eb;">${total.toLocaleString()} บาท</span>
+              </div>
+
+              <div class="footer">
+                ${bill.sessionId ? `👤 Session: ${escapeHtml(bill.sessionId)}<br>` : ""}
+                ขอบคุณที่ใช้บริการ 🙏
+              </div>
+
+              <button class="print-btn" onclick="window.print()">🖨️ พิมพ์ผ่านเบราว์เซอร์</button>
+            </div>
+          </body>
+          </html>
+        `);
+        previewWindow.document.close();
+      }
+
+      async function printBillSlip(bill) {
         try {
           const ordersSnap = await getDocs(collection(db, "orders"));
           const items = [];
           let computedTotal = 0;
 
-          // แปลงเลขโต๊ะให้เป็น String และตัดช่องว่างส่วนเกินเพื่อความแม่นยำ
           const targetTable = String(bill.table || "").trim();
+          const targetTableSession = bill.tableSessionId ? String(bill.tableSessionId).trim() : "";
           const targetSession = bill.sessionId ? String(bill.sessionId).trim() : "";
 
           ordersSnap.forEach((d) => {
             const o = d.data();
             const orderTable = String(o.table || "").trim();
+            const orderTableSession = o.tableSessionId ? String(o.tableSessionId).trim() : "";
             const orderSession = o.sessionId ? String(o.sessionId).trim() : "";
 
             const sameTable = (orderTable === targetTable);
-            // ถ้ามี sessionId ให้เช็คตรงกัน แต่ถ้าฝั่งบิลไม่มี sessionId ให้รวมโต๊ะนั้นทั้งหมด
-            const sameSession = targetSession ? (orderSession === targetSession) : true;
+            
+            let matchSession = true;
+            if (targetTableSession) {
+              matchSession = (orderTableSession === targetTableSession);
+            } else if (targetSession) {
+              matchSession = (orderSession === targetSession);
+            }
 
-            // ตรวจสอบเฉพาะออเดอร์ที่ยังไม่ถูกยกเลิก (หรือกรองตามสถานะที่ต้องการรวมบิล เช่น ยังไม่ได้เคลียร์)
-            if (sameTable && sameSession) {
+            if (sameTable && matchSession) {
               const price = Number(o.price || 0);
               const lineTotal = price * Number(o.qty || 1);
               computedTotal += lineTotal;
@@ -590,8 +685,7 @@ async function printBillSlip(bill) {
             }
           });
 
-          // เผื่อกรณีหาแบบตรงเป๊ะไม่เจอ ลองค้นหาเฉพาะเลขโต๊ะอย่างเดียวดูก่อน (Fallback)
-          if (items.length === 0 && targetSession) {
+          if (items.length === 0) {
             ordersSnap.forEach((d) => {
               const o = d.data();
               if (String(o.table || "").trim() === targetTable) {
@@ -618,6 +712,17 @@ async function printBillSlip(bill) {
               ? Number(bill.totalPrice)
               : computedTotal;
 
+          // เช็คสถานะเครื่องพิมพ์จากหน้าจอ (ถ้านับเป็นออฟไลน์ หรือพิมพ์ผ่าน Server ไม่สำเร็จ)
+          const isServerOffline = printServerStatusEl.classList.contains("offline");
+
+          if (isServerOffline) {
+            // เปิดหน้า HTML Preview ให้ตรวจสอบข้อมูลแทน
+            showBillPreviewHtml(bill, items, total);
+            showToast(`เปิดหน้าตรวจสอบบิลโต๊ะ ${bill.table} (เครื่องพิมพ์ออฟไลน์)`, "info");
+            return true; // ถือว่าดำเนินการเรียบร้อยเพื่อให้การ์ดเช็คบิลทำงานต่อได้
+          }
+
+          // ถ้าออนไลน์ปกติ ส่งไป Print Server ตามเดิม
           const now = new Date().toLocaleString("th-TH", {
             hour: "2-digit",
             minute: "2-digit",
@@ -632,7 +737,7 @@ async function printBillSlip(bill) {
             items: items,
             total: total,
             footer: [
-              bill.sessionId ? `👤 ${bill.sessionId}` : "",
+              bill.tableSessionId ? `🔄 รอบ: ${bill.tableSessionId}` : "",
               `ขอบคุณที่ใช้บริการ 🙏`,
             ]
               .filter(Boolean)
@@ -681,7 +786,7 @@ async function printBillSlip(bill) {
         setTimeout(() => tableQrNumber.focus(), 50);
       });
 
-      // เมื่อกดปุ่ม "จัดการร้าน" (ยังไม่ต้องเพิ่มการทำงาน ตามที่ระบุ)
+      // เมื่อกดปุ่ม "จัดการร้าน"
       menuManageMenu.addEventListener("click", () => {
         optionsModal.classList.remove("show");
         showToast("ฟังก์ชันจัดการร้านกำลังพัฒนา", "info");
@@ -740,6 +845,7 @@ async function printBillSlip(bill) {
         card.dataset.status = item.status;
 
         const timeStr = formatTimestamp(item.createdAt);
+        const displaySession = item.userSessionId || item.sessionId || "-";
 
         card.innerHTML = `
           <div class="order-info">
@@ -750,7 +856,7 @@ async function printBillSlip(bill) {
           ${item.additionalDetail ? `<div style="font-size:0.85rem;color:#777;margin-bottom:6px;">📝 ${escapeHtml(item.additionalDetail)}</div>` : ""}
           <div class="order-status-row">
             <div>โต๊ะ: ${escapeHtml(item.table)} | สถานะ: <strong>${getStatusThai(item.status)}</strong></div>
-            <div class="badge-session">👤 ${escapeHtml(item.sessionId || "-")}</div>
+            <div class="badge-session">👤 ${escapeHtml(displaySession)}</div>
           </div>
         `;
 
@@ -816,6 +922,7 @@ async function printBillSlip(bill) {
         const price = item.totalPrice
           ? Number(item.totalPrice).toLocaleString()
           : "-";
+        const displaySession = item.userSessionId || item.sessionId || "";
 
         div.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -826,7 +933,7 @@ async function printBillSlip(bill) {
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
             <div style="font-size: 11px; color: #888;">${timeStr}</div>
-            ${item.sessionId ? `<div style="font-size: 10px; color: #aaa;">👤 ${escapeHtml(item.sessionId)}</div>` : ""}
+            ${displaySession ? `<div style="font-size: 10px; color: #aaa;">👤 ${escapeHtml(displaySession)}</div>` : ""}
           </div>
         `;
 
