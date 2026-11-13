@@ -185,29 +185,23 @@
         color: #c62828;
       }
 
-      .primary-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        vertical-align: middle;
-        margin-right: 8px;
-        border: 1px solid #c8e6c9;
-        border-radius: 10px;
-        padding: 2px 8px;
-        background: #e8f5e9;
-        color: #2e7d32;
-        font-family: inherit;
-        font-size: 0.75rem;
-        font-weight: normal;
-        line-height: normal;
+      /* ปุ่มจุด 3 จุด (Menu Dots) */
+      .menu-dots-btn {
+        background: transparent;
+        border: none;
+        font-size: 1.3rem;
         cursor: pointer;
+        padding: 2px 8px;
+        border-radius: 8px;
+        margin-left: 4px;
+        color: #555;
+        vertical-align: middle;
       }
-      .primary-button:hover { background: #dff1e1; }
-      .primary-button:active { opacity: 0.8; }
-      .primary-button:focus-visible {
-        outline: 2px solid #2e7d32;
-        outline-offset: 2px;
+      .menu-dots-btn:hover {
+        background: #e2e8f0;
       }
+
+      /* สไตล์ Modal กลางจอทั่วไป */
       .modal-backdrop {
         display: none;
         position: fixed;
@@ -253,16 +247,71 @@
       .cancel-button { background: #e5e7eb; color: #222; }
       .print-button { background: #15803d; color: white; }
       .print-button:disabled { opacity: .55; cursor: wait; }
+
+      /* เมนูเลือกใน Dialog จุด 3 จุด */
+      .options-menu-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .option-item-btn {
+        width: 100%;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background 0.1s;
+      }
+      .option-item-btn:hover {
+        background: #f1f5f9;
+      }
+      .option-item-btn:active {
+        background: #e2e8f0;
+      }
     </style>
   </head>
   <body>
     <h2>
       ครัวจันทร์เพ็ญ
-      <button id="openTableQrModal" class="primary-button" type="button">▦ พิมพ์ QR Code โต๊ะ</button>
-      <span id="printServerStatus" class="offline">🖨️ กำลังเชื่อมต่อ...</span>
+      <div>
+        <span id="printServerStatus" class="offline">🖨️ กำลังเชื่อมต่อ...</span>
+        <!-- ปุ่มจุด 3 จุด ด้านหลังสัญลักษณ์เครื่องพิมพ์ -->
+        <button id="openOptionsModal" class="menu-dots-btn" type="button" title="เมนูเพิ่มเติม">⋮</button>
+      </div>
       <span id="refreshingStatus" style="display: none">(กำลังรีเฟรช...)</span>
     </h2>
 
+    <!-- Dialog เมนูเลือกหลัก (เกิดจากการกดปุ่มจุด 3 จุด) -->
+    <div id="optionsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="optionsTitle">
+      <div class="modal-panel">
+        <h3 id="optionsTitle">จัดการระบบร้าน</h3>
+        <div class="options-menu-list">
+          <button id="menuPrintQr" class="option-item-btn" type="button">
+            <span>▦</span> พิมพ์ QR Code โต๊ะ
+          </button>
+          <button id="menuManageMenu" class="option-item-btn" type="button"  onclick="window.open('https://webappkpc-web.github.io/restaurant201/menumgr.html', '_blank')">
+            <span>🍽️</span> จัดการเมนูอาหาร
+          </button>
+          <button id="menuManageShop" class="option-item-btn" type="button"  onclick="window.open('https://webappkpc-web.github.io/restaurant201/restaurant203.html', '_blank')">
+            <span>🛒</span> จัดการร้าน/ยอดขาย
+          </button>
+        </div>
+        <div class="modal-actions">
+          <button id="closeOptionsModal" class="cancel-button" type="button">ปิด</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dialog พิมพ์ QR Code โต๊ะ -->
     <div id="tableQrModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="tableQrTitle">
       <div class="modal-panel">
         <h3 id="tableQrTitle">พิมพ์บาร์โค้ดโต๊ะ</h3>
@@ -270,7 +319,7 @@
         <input id="tableQrNumber" type="text" inputmode="text" autocomplete="off"
                placeholder="เช่น A1 หรือ 1" maxlength="30" />
         <div class="modal-actions">
-          <button id="cancelTableQr" class="cancel-button" type="button">ยกเลิก</button>
+          <button id="cancelTableQr" class="cancel-button" type="button">ปิด</button>
           <button id="printTableQr" class="print-button" type="button">พิมพ์บาร์โค้ด</button>
         </div>
       </div>
@@ -400,12 +449,10 @@
 
       function updateOrderCount() {
         const orders = document.querySelectorAll(".order-card:not(.fade-out)");
-        // ไม่มี badge ที่ header แล้ว - คงไว้เผื่ออนาคต
       }
 
       function updateCallCount() {
         const calls = document.querySelectorAll(".call-card:not(.fade-out)");
-        // ไม่มี badge ที่ header แล้ว - คงไว้เผื่ออนาคต
       }
 
       // ==================== Print Server Status ====================
@@ -477,7 +524,7 @@
               note: item.additionalDetail || "",
             },
           ],
-          footer: `👤 ${item.sessionId || "-"}`,
+          footer: `👤 ${item.userSessionId || item.sessionId || "-"}`,
         };
         const ok = await postToPrintServer(payload);
         if (ok) showToast(`พิมพ์เข้าครัว: ${item.title}`, "info");
@@ -500,31 +547,132 @@
               note: item.additionalDetail || "",
             },
           ],
-          footer: `👤 ${item.sessionId || "-"}`,
+          footer: `👤 ${item.userSessionId || item.sessionId || "-"}`,
         };
         const ok = await postToPrintServer(payload);
         if (ok) showToast(`พิมพ์สลิปเสิร์ฟ: ${item.title}`, "info");
       }
 
       // ==================== Print Bill (เรียกสรุปยอด) ====================
-      // 💳 ตั้งค่า PromptPay ของร้าน (เบอร์โทร 10 หลัก หรือเลขบัตรประชาชน 13 หลัก)
+// ==================== Print Bill (เรียกสรุปยอด) ====================
       const PROMPTPAY_ID = "0899100419";
       const PROMPTPAY_NAME = "ครัวจันทร์เพ็ญ";
 
+      // ฟังก์ชันสำหรับแสดงบิลบนหน้าเว็บเบราว์เซอร์ (กรณีเครื่องพิมพ์ออฟไลน์)
+      function showBillPreviewHtml(bill, items, total) {
+        const now = new Date().toLocaleString("th-TH", {
+          hour: "2-digit",
+          minute: "2-digit",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+
+        let itemsHtml = "";
+        items.forEach((item) => {
+          itemsHtml += `
+            <tr style="border-bottom: 1px dashed #ddd;">
+              <td style="padding: 8px 4px; text-align: left;">${escapeHtml(item.name)}${item.note ? `<br><small style="color: #666;">📝 ${escapeHtml(item.note)}</small>` : ""}</td>
+              <td style="padding: 8px 4px; text-align: center;">${item.qty}</td>
+              <td style="padding: 8px 4px; text-align: right;">${item.price.toLocaleString()}</td>
+            </tr>
+          `;
+        });
+
+        const previewWindow = window.open("", "_blank", "width=400,height=600");
+        if (!previewWindow) {
+          showToast("กรุณาอนุญาตให้เบราว์เซอร์เปิด Pop-up หน้าต่างแสดงบิล", "error");
+          return;
+        }
+
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>ตรวจสอบบิล - โต๊ะ ${escapeHtml(bill.table)}</title>
+            <style>
+              body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; background: #f9fafb; color: #333; }
+              .receipt { background: #fff; max-width: 320px; margin: 0 auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+              h2, h3 { text-align: center; margin: 0 0 5px; }
+              .shop-info { text-align: center; font-size: 0.9rem; color: #666; margin-bottom: 15px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
+              th { border-bottom: 2px solid #333; padding: 6px 4px; text-align: left; }
+              .total-section { margin-top: 15px; border-top: 2px solid #333; padding-top: 10px; font-size: 1.1rem; font-weight: bold; display: flex; justify-content: space-between; }
+              .footer { text-align: center; margin-top: 20px; font-size: 0.85rem; color: #777; }
+              .offline-banner { background: #fee2e2; color: #991b1b; padding: 8px; border-radius: 6px; text-align: center; font-size: 0.85rem; margin-bottom: 15px; font-weight: bold; }
+              .print-btn { display: block; width: 100%; background: #2563eb; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+              .print-btn:hover { background: #1d4ed8; }
+            </style>
+          </head>
+          <body>
+            <div class="receipt">
+              <div class="offline-banner">⚠️ เครื่องพิมพ์ออฟไลน์ (โหมดตรวจสอบ)</div>
+              <h2>${SHOP_NAME}</h2>
+              <div class="shop-info">ใบสรุปรายการอาหาร (Check Bill)<br>${now}</div>
+              
+              <div style="font-size: 0.95rem; margin-bottom: 10px;">
+                <strong>โต๊ะ:</strong> ${escapeHtml(bill.table)}<br>
+                ${bill.tableSessionId ? `<strong>รหัสรอบ:</strong> ${escapeHtml(bill.tableSessionId)}` : ""}
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>รายการ</th>
+                    <th style="text-align: center;">จำนวน</th>
+                    <th style="text-align: right;">ราคา</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <span>รวมทั้งสิ้น:</span>
+                <span style="color: #2563eb;">${total.toLocaleString()} บาท</span>
+              </div>
+
+              <div class="footer">
+                ${bill.sessionId ? `👤 Session: ${escapeHtml(bill.sessionId)}<br>` : ""}
+                ขอบคุณที่ใช้บริการ 🙏
+              </div>
+
+              <button class="print-btn" onclick="window.print()">🖨️ พิมพ์ผ่านเบราว์เซอร์</button>
+            </div>
+          </body>
+          </html>
+        `);
+        previewWindow.document.close();
+      }
+
       async function printBillSlip(bill) {
         try {
-          // ดึงออเดอร์ทั้งหมดของโต๊ะ/เซสชันนี้
           const ordersSnap = await getDocs(collection(db, "orders"));
           const items = [];
           let computedTotal = 0;
 
+          const targetTable = String(bill.table || "").trim();
+          const targetTableSession = bill.tableSessionId ? String(bill.tableSessionId).trim() : "";
+          const targetSession = bill.sessionId ? String(bill.sessionId).trim() : "";
+
           ordersSnap.forEach((d) => {
             const o = d.data();
-            const sameTable = String(o.table) === String(bill.table);
-            const sameSession = bill.sessionId
-              ? o.sessionId === bill.sessionId
-              : true;
-            if (sameTable && sameSession) {
+            const orderTable = String(o.table || "").trim();
+            const orderTableSession = o.tableSessionId ? String(o.tableSessionId).trim() : "";
+            const orderSession = o.sessionId ? String(o.sessionId).trim() : "";
+
+            const sameTable = (orderTable === targetTable);
+            
+            let matchSession = true;
+            if (targetTableSession) {
+              matchSession = (orderTableSession === targetTableSession);
+            } else if (targetSession) {
+              matchSession = (orderSession === targetSession);
+            }
+
+            if (sameTable && matchSession) {
               const price = Number(o.price || 0);
               const lineTotal = price * Number(o.qty || 1);
               computedTotal += lineTotal;
@@ -538,6 +686,23 @@
           });
 
           if (items.length === 0) {
+            ordersSnap.forEach((d) => {
+              const o = d.data();
+              if (String(o.table || "").trim() === targetTable) {
+                const price = Number(o.price || 0);
+                const lineTotal = price * Number(o.qty || 1);
+                computedTotal += lineTotal;
+                items.push({
+                  qty: Number(o.qty || 1),
+                  name: o.title + (o.option ? ` (${o.option})` : ""),
+                  price: lineTotal,
+                  note: o.additionalDetail || "",
+                });
+              }
+            });
+          }
+
+          if (items.length === 0) {
             showToast("ไม่พบรายการอาหารของโต๊ะนี้", "error");
             return false;
           }
@@ -547,6 +712,17 @@
               ? Number(bill.totalPrice)
               : computedTotal;
 
+          // เช็คสถานะเครื่องพิมพ์จากหน้าจอ (ถ้านับเป็นออฟไลน์ หรือพิมพ์ผ่าน Server ไม่สำเร็จ)
+          const isServerOffline = printServerStatusEl.classList.contains("offline");
+
+          if (isServerOffline) {
+            // เปิดหน้า HTML Preview ให้ตรวจสอบข้อมูลแทน
+            showBillPreviewHtml(bill, items, total);
+            showToast(`เปิดหน้าตรวจสอบบิลโต๊ะ ${bill.table} (เครื่องพิมพ์ออฟไลน์)`, "info");
+            return true; // ถือว่าดำเนินการเรียบร้อยเพื่อให้การ์ดเช็คบิลทำงานต่อได้
+          }
+
+          // ถ้าออนไลน์ปกติ ส่งไป Print Server ตามเดิม
           const now = new Date().toLocaleString("th-TH", {
             hour: "2-digit",
             minute: "2-digit",
@@ -560,11 +736,8 @@
             order_info: `🧾 บิลสรุปยอด | โต๊ะ ${bill.table}\n${now}`,
             items: items,
             total: total,
-            // 💳 PromptPay — server จะสร้าง QR พร้อมยอดให้
-            promptpay_id: PROMPTPAY_ID,
-            promptpay_name: PROMPTPAY_NAME,
             footer: [
-              bill.sessionId ? `👤 ${bill.sessionId}` : "",
+              bill.tableSessionId ? `🔄 รอบ: ${bill.tableSessionId}` : "",
               `ขอบคุณที่ใช้บริการ 🙏`,
             ]
               .filter(Boolean)
@@ -581,24 +754,48 @@
         }
       }
 
-      // ==================== พิมพ์ QR Code สำหรับโต๊ะ ====================
+      // ==================== Modal ควบคุมปุ่มจุด 3 จุด และ พิมพ์ QR Code ====================
+      const optionsModal = document.getElementById("optionsModal");
+      const openOptionsModalBtn = document.getElementById("openOptionsModal");
+      const closeOptionsModalBtn = document.getElementById("closeOptionsModal");
+      const menuPrintQr = document.getElementById("menuPrintQr");
+      const menuManageMenu = document.getElementById("menuManageMenu");
+
       const tableQrModal = document.getElementById("tableQrModal");
       const tableQrNumber = document.getElementById("tableQrNumber");
       const printTableQrButton = document.getElementById("printTableQr");
 
-      function openTableQrModal() {
+      // เปิด/ปิด Dialog เมนูจุด 3 จุด
+      openOptionsModalBtn.addEventListener("click", () => {
+        optionsModal.classList.add("show");
+      });
+      closeOptionsModalBtn.addEventListener("click", () => {
+        optionsModal.classList.remove("show");
+      });
+      optionsModal.addEventListener("click", (e) => {
+        if (e.target === optionsModal) optionsModal.classList.remove("show");
+      });
+
+      // เมื่อกดปุ่ม "พิมพ์ QR Code โต๊ะ" จากเมนูย่อย
+      menuPrintQr.addEventListener("click", () => {
+        optionsModal.classList.remove("show"); // ปิดเมนูหลักก่อน
         tableQrModal.classList.add("show");
         tableQrNumber.value = "";
         printTableQrButton.disabled = false;
         printTableQrButton.textContent = "พิมพ์บาร์โค้ด";
         setTimeout(() => tableQrNumber.focus(), 50);
-      }
+      });
+
+      // เมื่อกดปุ่ม "จัดการร้าน"
+      menuManageMenu.addEventListener("click", () => {
+        optionsModal.classList.remove("show");
+        showToast("ฟังก์ชันจัดการร้านกำลังพัฒนา", "info");
+      });
 
       function closeTableQrModal() {
         tableQrModal.classList.remove("show");
       }
 
-      document.getElementById("openTableQrModal").addEventListener("click", openTableQrModal);
       document.getElementById("cancelTableQr").addEventListener("click", closeTableQrModal);
       tableQrModal.addEventListener("click", (event) => {
         if (event.target === tableQrModal) closeTableQrModal();
@@ -648,6 +845,7 @@
         card.dataset.status = item.status;
 
         const timeStr = formatTimestamp(item.createdAt);
+        const displaySession = item.userSessionId || item.sessionId || "-";
 
         card.innerHTML = `
           <div class="order-info">
@@ -658,7 +856,7 @@
           ${item.additionalDetail ? `<div style="font-size:0.85rem;color:#777;margin-bottom:6px;">📝 ${escapeHtml(item.additionalDetail)}</div>` : ""}
           <div class="order-status-row">
             <div>โต๊ะ: ${escapeHtml(item.table)} | สถานะ: <strong>${getStatusThai(item.status)}</strong></div>
-            <div class="badge-session">👤 ${escapeHtml(item.sessionId || "-")}</div>
+            <div class="badge-session">👤 ${escapeHtml(displaySession)}</div>
           </div>
         `;
 
@@ -673,9 +871,6 @@
 
             if (currentStatus === "pending" && nextStatus === "cooking") {
               printKitchenTicket(item);
-            }
-            if (currentStatus === "cooking" && nextStatus === "done") {
-              // printServedSlip(item);
             }
 
             card.style.opacity = "0.5";
@@ -723,10 +918,11 @@
         const timeStr = formatTimestamp(item.createdAt);
         const isBill = type === "bill";
         const icon = isBill ? "💵" : "🔔";
-        const label = isBill ? "เรียกสรุปยอด" : "เรียกพนักงาน";
+        const label = isBill ? "เรียกเช็คบิล" : "เรียกพนักงาน";
         const price = item.totalPrice
           ? Number(item.totalPrice).toLocaleString()
           : "-";
+        const displaySession = item.userSessionId || item.sessionId || "";
 
         div.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -737,7 +933,7 @@
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
             <div style="font-size: 11px; color: #888;">${timeStr}</div>
-            ${item.sessionId ? `<div style="font-size: 10px; color: #aaa;">👤 ${escapeHtml(item.sessionId)}</div>` : ""}
+            ${displaySession ? `<div style="font-size: 10px; color: #aaa;">👤 ${escapeHtml(displaySession)}</div>` : ""}
           </div>
         `;
 
@@ -746,11 +942,9 @@
 
           div.style.pointerEvents = "none";
 
-          // ✅ เรียกสรุปยอด → พิมพ์บิลก่อนปิดการ์ด
           if (isBill) {
             const ok = await printBillSlip(item);
             if (!ok) {
-              // พิมพ์ไม่สำเร็จ — เปิดให้กดใหม่ได้
               div.style.pointerEvents = "";
               return;
             }
