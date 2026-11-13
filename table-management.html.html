@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>จัดการสถานะโต๊ะ - ครัวจันทร์เพ็ญ</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding: 15px;
+        background-color: #f4f4f9;
+        margin: 0;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .back-btn {
+        background: #e2e8f0;
+        color: #334155;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .back-btn:hover {
+        background: #cbd5e1;
+      }
+
+      /* Grid แสดงการ์ดโต๊ะ */
+      .table-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 15px;
+      }
+
+      .table-card {
+        background: white;
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 12px;
+        transition: transform 0.1s;
+        border-top: 6px solid #cbd5e1;
+      }
+
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .table-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #0f172a;
+      }
+
+      .status-badge {
+        font-size: 0.75rem;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .table-info {
+        font-size: 0.85rem;
+        color: #64748b;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        word-break: break-all;
+      }
+
+      .action-btn {
+        width: 100%;
+        border: none;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s, opacity 0.2s;
+      }
+      .action-btn:active {
+        transform: scale(0.98);
+      }
+
+      .empty-message {
+        text-align: center;
+        padding: 50px;
+        color: #94a3b8;
+        background: white;
+        border-radius: 14px;
+        grid-column: 1 / -1;
+        font-size: 1.1rem;
+      }
+
+      /* Toast Notification */
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e293b;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        z-index: 9999;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: fadeInOut 2s ease;
+      }
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      }
+    </style>
+  </head>
+  <body>
+
+    <header>
+      <h2>🪑 จัดการสถานะโต๊ะอาหาร</h2>
+      <a href="restaurant201.html" class="back-btn">⬅️ กลับหน้าหลักครัว</a>
+    </header>
+
+    <!-- ส่วนแสดงรายการโต๊ะทั้งหมด -->
+    <div id="tableGridContainer" class="table-grid">
+      <div class="empty-message">กำลังโหลดข้อมูลโต๊ะ...</div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDocs,
+        updateDoc,
+        doc,
+        query,
+        where,
+        onSnapshot,
+        Timestamp,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAhJaUZhl14mlJ7I_FVMu2fuMg6qAKspO4",
+        authDomain: "restaurant-101a.firebaseapp.com",
+        projectId: "restaurant-101a",
+        storageBucket: "restaurant-101a.firebasestorage.app",
+        messagingSenderId: "35898180691",
+        appId: "1:35898180691:web:21e39b2796018d48e432a6",
+        measurementId: "G-5KR88CLQHM"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      const container = document.getElementById("tableGridContainer");
+
+      function showToast(message) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      }
+
+      function escapeHtml(text) {
+        if (!text) return "";
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // โหลดข้อมูลสถานะโต๊ะและบิลแบบ Real-time
+      function setupTableLifecycleListener() {
+        // ดึงข้อมูลโต๊ะทั้งหมด และ bills ที่รอชำระเงินมาเทียบเคียง
+        const tablesQuery = query(collection(db, "tables"));
+
+        onSnapshot(tablesQuery, async (snapshot) => {
+          if (snapshot.empty) {
+            container.innerHTML = "<div class='empty-message'>📭 ยังไม่มีข้อมูลโต๊ะในระบบ</div>";
+            return;
+          }
+
+          // ดึงข้อมูล bills ที่มีสถานะขอเช็คบิลอยู่ (requested) มาเช็คยอดรวม
+          const billsSnap = await getDocs(query(collection(db, "bills"), where("status", "==", "requested")));
+          const pendingBillsMap = new Map();
+          billsSnap.forEach(bDoc => {
+            const bData = bDoc.data();
+            if (bData.tableSessionId) {
+              pendingBillsMap.set(bData.tableSessionId, bData);
+            } else if (bData.table) {
+              pendingBillsMap.set(bData.table, bData);
+            }
+          });
+
+          container.innerHTML = "";
+
+          snapshot.forEach((docSnap) => {
+            const tableData = docSnap.data();
+            const tableName = docSnap.id;
+            const status = tableData.status || "available";
+            const sessionId = tableData.activeSessionId || "";
+
+            // ตรวจสอบว่าโต๊ะนี้มีบิลค้างชำระอยู่ไหม
+            const matchedBill = pendingBillsMap.get(sessionId) || pendingBillsMap.get(tableName);
+            const isBillRequested = (status === "bill_requested" || matchedBill);
+
+            // กำหนดสีและสไตล์การ์ดตามสถานะ
+            let borderColor = "#cbd5e1"; // ว่าง (available)
+            let badgeBg = "#f1f5f9";
+            let badgeColor = "#475569";
+            let badgeText = "โต๊ะว่าง";
+            let btnBg = "#f1f5f9";
+            let btnColor = "#334155";
+            let btnText = "รีเซ็ตสถานะ";
+            let btnActionStyle = "";
+
+            if (isBillRequested) {
+              borderColor = "#f97316"; // เรียกเช็คบิล (ส้ม)
+              badgeBg = "#ffedd5";
+              badgeColor = "#c2410c";
+              badgeText = "💵 เรียกเช็คบิล";
+              btnBg = "#16a34a"; // เขียว (กดรับเงิน/เคลียร์โต๊ะ)
+              btnColor = "#ffffff";
+              btnText = "💰 รับเงิน & เคลียร์โต๊ะ";
+            } else if (status === "active" || status === "ordering" || sessionId) {
+              borderColor = "#3b82f6"; // กำลังใช้งาน (ฟ้า)
+              badgeBg = "#dbeafe";
+              badgeColor = "#1d4ed8";
+              badgeText = "🍽️ กำลังใช้งาน";
+              btnBg = "#ef4444"; // แดง (บังคับเคลียร์โต๊ะกรณีลูกค้าลุกออกโดยไม่เช็คบิล)
+              btnColor = "#ffffff";
+              btnText = "🔄 บังคับเคลียร์โต๊ะ";
+            }
+
+            const card = document.createElement("div");
+            card.className = "table-card";
+            card.style.borderTopColor = borderColor;
+
+            const billAmountHtml = matchedBill && matchedBill.totalPrice 
+              ? `<div style="color: #16a34a; font-weight: bold; font-size: 1rem;">ยอดชำระ: ${Number(matchedBill.totalPrice).toLocaleString()} บาท</div>` 
+              : "";
+
+            card.innerHTML = `
+              <div>
+                <div class="table-header">
+                  <span class="table-name">โต๊ะ ${escapeHtml(tableName)}</span>
+                  <span class="status-badge" style="background: ${badgeBg}; color: ${badgeColor};">${badgeText}</span>
+                </div>
+                <div class="table-info" style="margin-top: 10px;">
+                  ${billAmountHtml}
+                  <div><strong>รหัสรอบ:</strong> ${escapeHtml(sessionId || "-")}</div>
+                </div>
+              </div>
+              <button class="action-btn" style="background: ${btnBg}; color: ${btnColor};" onclick="handleClearTable('${escapeHtml(tableName)}', '${escapeHtml(matchedBill ? matchedBill.id : '')}')">
+                ${btnText}
+              </button>
+            `;
+
+            container.appendChild(card);
+          });
+        }, (error) => {
+          console.error("Error loading tables:", error);
+          container.innerHTML = `<div class='empty-message' style='color:#dc2626;'>❌ โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(error.message)}</div>`;
+        });
+      }
+
+      // ฟังก์ชันกดเคลียร์โต๊ะ / รับเงิน
+      window.handleClearTable = async function(tableName, billId) {
+        const confirmMsg = billId 
+          ? `ยืนยันการรับเงินและเคลียร์โต๊ะ ${tableName} เพื่อเริ่มรอบใหม่ใช่หรือไม่?` 
+          : `ยืนยันการรีเซ็ต/เคลียร์โต๊ะ ${tableName} ใช่หรือไม่?`;
+
+        if (!confirm(confirmMsg)) return;
+
+        try {
+          // 1. อัปเดตสถานะโต๊ะใน collection "tables" ให้เป็น available และเคลียร์ activeSessionId ทิ้ง
+          const tableRef = doc(db, "tables", tableName);
+          await updateDoc(tableRef, {
+            activeSessionId: null,
+            status: "available",
+            clearedAt: Timestamp.now(),
+            updatedAt: Timestamp.now()
+          });
+
+          // 2. ถ้ามีบิลค้างอยู่ ให้เปลี่ยนสถานะบิลเป็น completed หรือ paid ด้วย (ถ้ามี collection bills)
+          if (billId) {
+            const billRef = doc(db, "bills", billId);
+            await updateDoc(billRef, {
+              status: "completed",
+              paidAt: Timestamp.now()
+            });
+          }
+
+          showToast(`เคลียร์โต๊ะ ${tableName} เรียบร้อยแล้ว`);
+        } catch (err) {
+          console.error("Clear table error:", err);
+          showToast(`เคลียร์โต๊ะไม่สำเร็จ: ${err.message}`);
+        }
+      };
+
+      // เริ่มต้นทำงาน
+      setupTableLifecycleListener();
+    </script>
+  </body>
+</html>
